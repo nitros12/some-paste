@@ -1,4 +1,3 @@
-{-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE QuasiQuotes       #-}
 
 module Db ( insertPaste
@@ -16,9 +15,9 @@ import           Database.PostgreSQL.Simple.Types
 import Data.Maybe (listToMaybe)
 import           Data.Text                          (Text)
 
-data Paste = Paste { paste_id   :: Int64
-                   , paste_text :: Text
-                   , paste_key  :: Text
+data Paste = Paste { pasteId   :: Int64
+                   , pasteText :: Text
+                   , pasteKey  :: Text
                    } deriving Show
 
 instance FromRow Paste where
