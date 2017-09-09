@@ -16,6 +16,7 @@ cabal-version:       >=1.10
 library
   hs-source-dirs:      src
   exposed-modules:     Db
+                     , Highlight
   build-depends:       base >= 4.7 && < 5
                      , skylighting >= 0.3
                      , postgresql-simple >= 0.5
