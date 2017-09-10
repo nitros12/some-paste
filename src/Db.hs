@@ -43,10 +43,16 @@ pasteKeyQuery key = proc () -> do
   restrict -< (rkey .== constant key)
   returnA -< row
 
+pasteUpdateQuery :: PQ.Connection -> Text -> IO Int64
+pasteUpdateQuery c key = do
+  time <- getCurrentTime
+  runUpdate c pasteTable (update time) predicate
+  where
+    update time (id_, _, text, rkey, lang) = (Just id_, constant time, text, rkey, lang)
+    predicate (_, _, _, rkey, _) = rkey .== constant key
+
 getPaste :: PQ.Connection -> Text -> IO (Maybe Paste)
-getPaste c key = do
-  r <- runQuery c $ pasteKeyQuery key
-  return . listToMaybe $ r
+getPaste c key = listToMaybe <$> runQuery c (pasteKeyQuery key)
 
 insertPaste :: PQ.Connection -> Text -> Text -> Text -> IO Int64
 insertPaste c text key lang = do
