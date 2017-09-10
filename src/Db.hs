@@ -1,67 +1,76 @@
-{-# LANGUAGE QuasiQuotes #-}
+{-# LANGUAGE Arrows           #-}
+{-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE QuasiQuotes      #-}
 
-module Db ( insertPaste
-          , Paste
+module Db ( Paste
+          , getPaste
+          , insertPaste
+          , cleanPastes
+          , cleanMonthOld
+          , createTable
           ) where
 
-import           GHC.Generics                       (Generic)
+import           GHC.Generics                     (Generic)
 
-import           Data.Int                           (Int64)
-import           Data.Maybe                         (listToMaybe)
-import           Data.Text                          (Text)
+import           Data.Int                         (Int64)
+import           Data.Maybe                       (listToMaybe)
+import           Data.Text                        (Text)
 import           Data.Time.Clock
 
-import           Database.PostgreSQL.Simple
-import           Database.PostgreSQL.Simple.FromRow
-import           Database.PostgreSQL.Simple.SqlQQ   (sql)
-import           Database.PostgreSQL.Simple.Time
-import           Database.PostgreSQL.Simple.Types
+import qualified Database.PostgreSQL.Simple       as PQ
+import           Database.PostgreSQL.Simple.SqlQQ (sql)
 
+import           Control.Arrow
+import           Data.Profunctor.Product          (p5)
 
-data Paste = Paste { pasteId   :: Int64
-                   , lastVisit :: UTCTime
-                   , pasteText :: Text
-                   , pasteKey  :: Text
-                   } deriving Show
+import           Opaleye
 
-instance FromRow Paste where
-  fromRow = Paste <$> field <*> field <*> field <*> field
+type PasteColumn = (Column PGInt8, Column PGTimestamptz, Column PGText, Column PGText, Column PGText)
+type Paste = (Int64, UTCTime, Text, Text, Text)
 
-createTable :: Connection -> IO Int64
-createTable c = execute_ c [sql|
-    CREATE TABLE IF NOT EXISTS pastes (
-        paste_id BIGSERIAL PRIMARY KEY,
-        last_visit TIMESTAMPTZ,
-        paste_text TEXT,
-        paste_key VARCHAR(80) UNIQUE)
-  |]
+pasteTable :: Table
+              (Maybe (Column PGInt8), Column PGTimestamptz, Column PGText, Column PGText, Column PGText)
+              (Column PGInt8, Column PGTimestamptz, Column PGText, Column PGText, Column PGText)
+pasteTable = Table "pastes" (p5 ( optional "id"
+                                , required "last_visit"
+                                , required "text"
+                                , required "key"
+                                , required "lang" ))
 
-insertPaste :: Connection -> Text -> Text -> IO Int64
-insertPaste c text key = do
-  time <- getCurrentTime
-  execute c [sql|
-    INSERT INTO pastes
-    (paste_id, last_visit, paste_text, paste_key)
-    VALUES (?, ?, ?, ?)
-  |] (Default, time, text, key)
+pasteKeyQuery :: Text -> Query PasteColumn
+pasteKeyQuery key = proc () -> do
+  row@(_, _, _, rkey, _) <- queryTable pasteTable -< ()
+  restrict -< (rkey .== constant key)
+  returnA -< row
 
-getPaste :: Connection -> Text -> IO (Maybe Paste)
+getPaste :: PQ.Connection -> Text -> IO (Maybe Paste)
 getPaste c key = do
+  r <- runQuery c $ pasteKeyQuery key
+  return . listToMaybe $ r
+
+insertPaste :: PQ.Connection -> Text -> Text -> Text -> IO Int64
+insertPaste c text key lang = do
   time <- getCurrentTime
-  query c [sql|
-    UPDATE pastes SET last_visit = ?
-    WHERE paste_key = ?
-    RETURNING *
-  |] (time, key) >>= return . listToMaybe
+  runInsertMany c pasteTable [(Nothing, constant time, constant text, constant key, constant lang)]
 
-cleanPastes :: Connection -> UTCTime -> IO Int64
-cleanPastes c before = execute c [sql|
-    DELETE FROM pastes where last_visit < ?
-  |] (Only before)
+cleanPastes :: PQ.Connection -> UTCTime -> IO Int64
+cleanPastes c before = runDelete c pasteTable predicate
+  where
+    predicate (_, t, _, _, _) = t .< constant before
 
-cleanMonthOld :: Connection -> IO Int64
+cleanMonthOld :: PQ.Connection -> IO Int64
 cleanMonthOld c = do
-  currentTime <- getCurrentTime
+  time <- getCurrentTime
   let delta = fromInteger $ negate 60 * 60 * 24 * 31
-  let diff  = addUTCTime delta currentTime
+  let diff  = addUTCTime delta time
   cleanPastes c diff
+
+createTable :: PQ.Connection -> IO Int64
+createTable c = PQ.execute_ c [sql|
+    CREATE TABLE IF NOT EXISTS pastes (
+        id BIGSERIAL PRIMARY KEY,
+        last_visit TIMESTAMPTZ NOT NULL,
+        text TEXT NOT NULL,
+        key VARCHAR(80) NOT NULL UNIQUE,
+        lang Text NOT NULL)
+  |]
