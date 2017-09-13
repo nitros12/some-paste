@@ -46,6 +46,8 @@ executable some-paste-exe
                      , text-format >= 0.3
                      , clay >= 0.12
                      , wai-extra >= 3.0
+                     , resource-pool >= 0.2
+                     , random >= 1.1
                      , text
                      , some-paste
                      , warp
