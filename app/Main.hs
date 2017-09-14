@@ -1,4 +1,4 @@
-{-# LANGUAGE OverloadedStrings   #-}
+{-# LANGUAGE OverloadedStrings #-}
 
 module Main where
 
@@ -85,6 +85,9 @@ retrievePasteRaw conn = do
       status status404
       html $ format "Paste {} not found" [key]
 
+pageIndex :: Connection -> ActionM()
+pageIndex = return . html . renderHtml $ frontPage
+
 main = do
   pool <- createPool spawnConn close 2 10 5
   withResource pool $
@@ -92,8 +95,9 @@ main = do
       scottyOpts opts $ do
 
       middleware . gzip $ def { gzipFiles = GzipCompress }
-      --middleware logStdoutDev
+      middleware logStdoutDev
 
+      get "/" $ pageIndex conn
       get "/paste/:key" $ retrievePaste conn
       get "/paste/raw/:key" $ retrievePasteRaw conn
       post "/paste" $ savePaste conn

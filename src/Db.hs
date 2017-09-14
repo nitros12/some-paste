@@ -14,7 +14,7 @@ import           GHC.Generics                     (Generic)
 
 import           Data.Int                         (Int64)
 import           Data.Maybe                       (listToMaybe)
-import           Data.Text.Lazy                        (Text)
+import           Data.Text.Lazy                   (Text)
 import           Data.Time.Clock
 
 import qualified Database.PostgreSQL.Simple       as PQ
