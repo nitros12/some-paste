@@ -101,4 +101,3 @@ main = do
       get "/paste/:key" $ retrievePaste conn
       get "/paste/raw/:key" $ retrievePasteRaw conn
       post "/paste" $ savePaste conn
-

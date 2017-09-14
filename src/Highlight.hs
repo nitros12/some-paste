@@ -13,10 +13,8 @@ import           Text.Blaze.Html5            hiding (map)
 import           Text.Blaze.Html5.Attributes (type_)
 
 -- |Split text into a list of sourcelines
-
 buildLines :: Text -> [SourceLine]
 buildLines = Prelude.map (\l -> [(VerbatimStringTok, l)]) . T.lines
--- TODO: why is this emitting newlines after each?
 
 getStyle :: Maybe Text -> Style
 getStyle (Just s) = case s of
@@ -46,4 +44,4 @@ highlightPaste code syntax theme = do
                              , traceOutput = False
                              }
     css = style ! type_ "text/css" $ toHtml $ styleToCss (getStyle theme)
-
+-- TODO: visit this and strip elements that are nothing but <elem>\n</elem>

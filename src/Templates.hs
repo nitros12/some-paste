@@ -16,46 +16,56 @@ import qualified Data.Text.Lazy              as T
 import           Data.Int                    (Int64)
 import           Data.Time.Clock
 
-import           Clay                        (height, margin, nil, pct, ( # ),
-                                              (?))
+import           Clay
 import qualified Clay                        as C
+
+import           Skylighting.Syntax          (defaultSyntaxMap)
 
 import           Db                          (Paste)
 import           Highlight
 
+import Data.String (IsString, fromString)
+
+import           Data.Map                    (keys)
+
 viewPaste :: Paste -> Maybe Text -> Html
-viewPaste (_, time, paste, key, lang) theme = html $ do
+viewPaste (_, time, paste, key, lang) theme = H.html $ do
   H.head . H.title . lazyText $ format "Paste: {}: {}" [key, lang]
-  body $ do
+  H.body $ do
     highlightPaste (toStrict paste) (toStrict lang) $ fmap toStrict theme
-    style H.! A.type_ "text/css" $ toHtml . C.render $ do
+    H.style H.! A.type_ "text/css" $ toHtml . C.render $ do
       C.body ? margin nil nil nil nil
       C.table # ".sourceCode" ? height (pct 100)
       C.td # ".lineNumbers" ? C.width (C.em 1)
 
+makeOption :: ST.Text -> Html
+makeOption v = H.option H.! A.value (fromString . ST.unpack $ v) $ H.toHtml v
 
 frontPage :: Html
 frontPage = do
   H.head . H.title $ "SomePaste"
-  body $ do
-    form H.! A.action "/paste" H.! A.method "post" $ do
-      textarea input
+  H.body $ do
+    H.form H.! A.action "/paste" H.! A.method "post" $ do
+      H.textarea ""
         H.! A.name "text"
-        --H.! A.class_ "code-input"
-        --H.! A.placeholder "input"
-      input
+        H.! A.class_ "code-input"
+        H.! A.spellcheck "false"
+      H.select
         H.! A.type_ "text"
         H.! A.name "lang"
-        H.! A.class_ "lang-input"
-        H.! A.placeholder "language"
-        H.! A.autocomplete "false"
-      input
+        H.! A.class_ "lang-input" $
+        mconcat $ Prelude.map makeOption (keys defaultSyntaxMap)
+      H.input
         H.! A.type_ "submit"
-        H.! A.value "Submit"
-    style H.! A.type_ "text/css" $ toHtml . C.render $ do
-      C.input # ".code-input" ? do
-        C.width (pct 100)
-        C.height (pct 80)
+        H.! A.value "Paste It!"
+    H.style H.! A.type_ "text/css" $ toHtml . C.render $
+      C.textarea # ".code-input" ? do
+        width (pct 100)
+        height (pct 80)
+        outline none none none
+        background transparent
+        "resize" -: "none"
+
 
 plainPaste :: Paste -> Text
 plainPaste (_, _, t, _, _) = t

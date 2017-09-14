@@ -4,6 +4,7 @@
 
 module Db ( Paste
           , getPaste
+          , updateLastVisit
           , insertPaste
           , cleanPastes
           , cleanMonthOld
@@ -15,6 +16,7 @@ import           GHC.Generics                     (Generic)
 import           Data.Int                         (Int64)
 import           Data.Maybe                       (listToMaybe)
 import           Data.Text.Lazy                   (Text)
+import Data.Text.Lazy as T
 import           Data.Time.Clock
 
 import qualified Database.PostgreSQL.Simple       as PQ
@@ -37,14 +39,17 @@ pasteTable = Table "pastes" (p5 ( optional "id"
                                 , required "key"
                                 , required "lang" ))
 
+stripCR :: Text -> Text
+stripCR = T.filter (/='\r')
+
 pasteKeyQuery :: Text -> Query PasteColumn
 pasteKeyQuery key = proc () -> do
   row@(_, _, _, rkey, _) <- queryTable pasteTable -< ()
   restrict -< (rkey .== constant key)
   returnA -< row
 
-pasteUpdateQuery :: PQ.Connection -> Text -> IO Int64
-pasteUpdateQuery c key = do
+updateLastVisit :: PQ.Connection -> Text -> IO Int64
+updateLastVisit c key = do
   time <- getCurrentTime
   runUpdate c pasteTable (update time) predicate
   where
@@ -56,6 +61,7 @@ getPaste c key = listToMaybe <$> runQuery c (pasteKeyQuery key)
 
 insertPaste :: PQ.Connection -> Text -> Text -> Text -> IO Int64
 insertPaste c text key lang = do
+  let text' = stripCR text
   time <- getCurrentTime
   runInsertMany c pasteTable [(Nothing, constant time, constant text, constant key, constant lang)]
 
