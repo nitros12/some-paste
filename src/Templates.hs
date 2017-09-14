@@ -24,7 +24,7 @@ import           Skylighting.Syntax          (defaultSyntaxMap)
 import           Db                          (Paste)
 import           Highlight
 
-import Data.String (IsString, fromString)
+import           Data.String                 (IsString, fromString)
 
 import           Data.Map                    (keys)
 
