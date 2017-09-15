@@ -57,13 +57,15 @@ updateLastVisit c key = do
     predicate (_, _, _, rkey, _) = rkey .== constant key
 
 getPaste :: PQ.Connection -> Text -> IO (Maybe Paste)
-getPaste c key = listToMaybe <$> runQuery c (pasteKeyQuery key)
+getPaste c key = do
+  updateLastVisit c key
+  listToMaybe <$> runQuery c (pasteKeyQuery key)
 
 insertPaste :: PQ.Connection -> Text -> Text -> Text -> IO Int64
 insertPaste c text key lang = do
   let text' = stripCR text
   time <- getCurrentTime
-  runInsertMany c pasteTable [(Nothing, constant time, constant text, constant key, constant lang)]
+  runInsertMany c pasteTable [(Nothing, constant time, constant text', constant key, constant lang)]
 
 cleanPastes :: PQ.Connection -> UTCTime -> IO Int64
 cleanPastes c before = runDelete c pasteTable predicate

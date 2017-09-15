@@ -1,4 +1,5 @@
-{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE OverloadedStrings          #-}
 
 module Main where
 
@@ -22,18 +23,29 @@ import           Data.Char
 import           Data.Pool
 import           System.Random
 
-import           Web.Scotty
+--import           Web.Scotty
 import           Web.Scotty.Internal.Types
+import  Web.Scotty.Trans
 
 import           Control.Monad
+import           Control.Monad.Reader
+import           Data.Default.Class                   (def)
 import           Data.Maybe
+
+import qualified Data.ConfigFile                      as Conf
 
 import           Db
 import           Templates
 
-opts = Options { verbose = 1
-               , settings = defaultSettings
-               }
+data Config = Config { port      :: Int
+                     , maxLength :: Int
+                     , connPool :: Pool Connection
+                     }
+
+newtype ConfigM a = ConfigM { runConfigM :: ReaderT Config IO a
+                            } deriving (Applicative, Functor, Monad, MonadIO, MonadReader Config)
+
+--type Trans.ScottyT Text ConfigM = Trans.ScottyT Text ConfigM
 
 dbinfo = defaultConnectInfo { connectUser = "postgres"
                             , connectDatabase = "somepaste"
@@ -50,54 +62,65 @@ randomHash = do
   rands <- replicateM 40 . onlyAlpha $ getStdRandom (randomR ('0', 'Z'))
   return $ T.pack rands
 
-maybeParam :: Text -> ActionT Text IO (Maybe Text)
-maybeParam key = do
+maybeParam :: Text -> Text -> ActionT Text ConfigM Text
+maybeParam d key = do
   paramList <- params
-  return $ lookup key paramList
+  return . fromMaybe d $ lookup key paramList
 
-retrievePaste :: Connection -> ActionM ()
-retrievePaste conn = do
+retrievePaste :: ActionT Text ConfigM ()
+retrievePaste = do
   key <- param "key"
-  theme <- maybeParam "theme"
-  paste <- liftAndCatchIO $ getPaste conn key
+  theme <- maybeParam "plain" "theme"
+  pool <- lift $ asks connPool
+  paste <- liftAndCatchIO $ withResource pool (`getPaste` key)
   case paste of
-    Just p -> html . renderHtml $ viewPaste p theme
+    Just p ->  html . renderHtml $ viewPaste p theme
     Nothing -> do
       status status404
       html $ format "Paste {} not found" [key]
 
-savePaste :: Connection -> ActionM ()
-savePaste conn = do
-  lang <- fromMaybe "plain" <$> maybeParam "lang"
+savePaste :: ActionT Text ConfigM ()
+savePaste = do
+  lang <- maybeParam "plain" "lang"
   text <- param "text"
   key <- liftAndCatchIO randomHash
-  liftAndCatchIO $ insertPaste conn text key lang
+  pool <- lift $ asks connPool
+  liftAndCatchIO $ withResource pool (\conn -> insertPaste conn text key lang)
   status created201
   redirect (format "/paste/{}" [key])
 
-retrievePasteRaw :: Connection -> ActionM ()
-retrievePasteRaw conn = do
+retrievePasteRaw :: ActionT Text ConfigM ()
+retrievePasteRaw = do
   key <- param "key"
-  paste <- liftAndCatchIO $ getPaste conn key
+  pool <- lift $ asks connPool
+  paste <- liftAndCatchIO $ withResource pool (`getPaste` key)
   case paste of
     Just p -> text . plainPaste $ p
     Nothing -> do
       status status404
       html $ format "Paste {} not found" [key]
 
-pageIndex :: Connection -> ActionM()
-pageIndex = return . html . renderHtml $ frontPage
+pageIndex :: ActionT Text ConfigM ()
+pageIndex = html . renderHtml $ frontPage
+
+app :: ScottyT Text ConfigM ()
+app = do
+  middleware . gzip $ def { gzipFiles = GzipCompress }
+  middleware logStdoutDev
+
+  get "/" pageIndex
+  get "/paste/:key" retrievePaste
+  --get "/paste/raw/:key" $ retrievePasteRaw
+  post "/paste" savePaste
 
 main = do
   pool <- createPool spawnConn close 2 10 5
-  withResource pool $
-    \conn ->
-      scottyOpts opts $ do
+  scottyOptsT def (runIO $ config pool) app where
+        runIO :: Config -> ConfigM a -> IO a
+        runIO c m = runReaderT (runConfigM m) c
 
-      middleware . gzip $ def { gzipFiles = GzipCompress }
-      middleware logStdoutDev
-
-      get "/" $ pageIndex conn
-      get "/paste/:key" $ retrievePaste conn
-      get "/paste/raw/:key" $ retrievePasteRaw conn
-      post "/paste" $ savePaste conn
+        config :: Pool Connection -> Config
+        config c = Config { port = 3000
+                          , maxLength = 5000
+                          , connPool = c
+                          }

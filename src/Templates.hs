@@ -28,11 +28,11 @@ import           Data.String                 (IsString, fromString)
 
 import           Data.Map                    (keys)
 
-viewPaste :: Paste -> Maybe Text -> Html
+viewPaste :: Paste -> Text -> Html
 viewPaste (_, time, paste, key, lang) theme = H.html $ do
   H.head . H.title . lazyText $ format "Paste: {}: {}" [key, lang]
   H.body $ do
-    highlightPaste (toStrict paste) (toStrict lang) $ fmap toStrict theme
+    highlightPaste (toStrict paste) (toStrict lang) $ toStrict theme
     H.style H.! A.type_ "text/css" $ toHtml . C.render $ do
       C.body ? margin nil nil nil nil
       C.table # ".sourceCode" ? height (pct 100)
