@@ -1,3 +1,4 @@
+{-# LANGUAGE DeriveGeneric              #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE OverloadedStrings          #-}
 
@@ -23,29 +24,36 @@ import           Data.Char
 import           Data.Pool
 import           System.Random
 
---import           Web.Scotty
 import           Web.Scotty.Internal.Types
-import  Web.Scotty.Trans
+import           Web.Scotty.Trans
 
 import           Control.Monad
 import           Control.Monad.Reader
 import           Data.Default.Class                   (def)
 import           Data.Maybe
+import Data.Yaml
 
-import qualified Data.ConfigFile                      as Conf
+import GHC.Generics
+
 
 import           Db
 import           Templates
 
 data Config = Config { port      :: Int
                      , maxLength :: Int
-                     , connPool :: Pool Connection
                      }
 
-newtype ConfigM a = ConfigM { runConfigM :: ReaderT Config IO a
-                            } deriving (Applicative, Functor, Monad, MonadIO, MonadReader Config)
+instance FromJson Config where
+  parseJson (Object v) = Config
+    <$> v .:? "port" .!= 3000
+    <*> v .:? "maxLength" .!= 5000
 
---type Trans.ScottyT Text ConfigM = Trans.ScottyT Text ConfigM
+data AppState = AppState { config   :: Config
+                         , connPool :: Pool Connection
+                         }
+
+newtype AppStateM a = AppStateM { runAppStateM :: ReaderT AppState IO a
+                                } deriving (Applicative, Functor, Monad, MonadIO, MonadReader AppState)
 
 dbinfo = defaultConnectInfo { connectUser = "postgres"
                             , connectDatabase = "somepaste"
@@ -62,12 +70,12 @@ randomHash = do
   rands <- replicateM 40 . onlyAlpha $ getStdRandom (randomR ('0', 'Z'))
   return $ T.pack rands
 
-maybeParam :: Text -> Text -> ActionT Text ConfigM Text
+maybeParam :: Text -> Text -> ActionT Text AppStateM Text
 maybeParam d key = do
   paramList <- params
   return . fromMaybe d $ lookup key paramList
 
-retrievePaste :: ActionT Text ConfigM ()
+retrievePaste :: ActionT Text AppStateM ()
 retrievePaste = do
   key <- param "key"
   theme <- maybeParam "plain" "theme"
@@ -79,7 +87,7 @@ retrievePaste = do
       status status404
       html $ format "Paste {} not found" [key]
 
-savePaste :: ActionT Text ConfigM ()
+savePaste :: ActionT Text AppStateM ()
 savePaste = do
   lang <- maybeParam "plain" "lang"
   text <- param "text"
@@ -89,7 +97,7 @@ savePaste = do
   status created201
   redirect (format "/paste/{}" [key])
 
-retrievePasteRaw :: ActionT Text ConfigM ()
+retrievePasteRaw :: ActionT Text AppStateM ()
 retrievePasteRaw = do
   key <- param "key"
   pool <- lift $ asks connPool
@@ -100,27 +108,27 @@ retrievePasteRaw = do
       status status404
       html $ format "Paste {} not found" [key]
 
-pageIndex :: ActionT Text ConfigM ()
+pageIndex :: ActionT Text AppStateM ()
 pageIndex = html . renderHtml $ frontPage
 
-app :: ScottyT Text ConfigM ()
+app :: ScottyT Text AppStateM ()
 app = do
   middleware . gzip $ def { gzipFiles = GzipCompress }
   middleware logStdoutDev
 
   get "/" pageIndex
   get "/paste/:key" retrievePaste
-  --get "/paste/raw/:key" $ retrievePasteRaw
+  get "/paste/raw/:key" retrievePasteRaw
   post "/paste" savePaste
 
 main = do
   pool <- createPool spawnConn close 2 10 5
-  scottyOptsT def (runIO $ config pool) app where
-        runIO :: Config -> ConfigM a -> IO a
-        runIO c m = runReaderT (runConfigM m) c
+  conf <- -- TODO
+  scottyOptsT def (runIO $ appState conf pool) app where
+        runIO :: AppState -> AppStateM a -> IO a
+        runIO c m = runReaderT (runAppStateM m) c
 
-        config :: Pool Connection -> Config
-        config c = Config { port = 3000
-                          , maxLength = 5000
-                          , connPool = c
-                          }
+        appState :: Config -> Pool Connection -> AppState
+        appState c p = AppState { config = c
+                                , connPool = p
+                                }
