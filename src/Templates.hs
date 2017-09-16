@@ -30,7 +30,7 @@ import           Data.Map                    (keys)
 
 viewPaste :: Paste -> Text -> Html
 viewPaste (_, time, paste, key, lang) theme = H.html $ do
-  H.head . H.title . lazyText $ format "Paste: {}: {}" [key, lang]
+  H.head . H.title . lazyText $ format "Paste: {}: " [key]
   H.body $ do
     highlightPaste (toStrict paste) (toStrict lang) $ toStrict theme
     H.style H.! A.type_ "text/css" $ toHtml . C.render $ do

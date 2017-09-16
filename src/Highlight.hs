@@ -34,8 +34,8 @@ highlightPaste :: Text -> Text -> Text -> Html
 highlightPaste code syntax theme = do
   let syntax' = lookupSyntax syntax defaultSyntaxMap
   case syntax' >>= (\s -> eitherToMaybe $ tokenize config s code) of
-      Just v -> formatHtmlBlock opts v >> css
-      Nothing  -> formatHtmlBlock opts (buildLines code) >> css
+      Just v  -> formatHtmlBlock opts v >> css
+      Nothing -> formatHtmlBlock opts (buildLines code) >> css
   where
     opts = defaultFormatOpts { numberLines = True
                              , lineAnchors = True
