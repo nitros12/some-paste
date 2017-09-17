@@ -65,8 +65,8 @@ test-suite some-paste-test
   main-is:             Spec.hs
   build-depends:       base
                      , postgresql-simple >= 0.5
-                     , wai-extra >= 3.0
                      , scotty >= 0.11
+                     , http-types >= 0.9
                      , resource-pool >= 0.2
                      , mtl >= 2.2
                      , text

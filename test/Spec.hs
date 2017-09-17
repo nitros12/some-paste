@@ -1,26 +1,24 @@
 {-# LANGUAGE OverloadedStrings #-}
 module Main (main) where
 
-import           Control.Monad.Reader                 (runReaderT)
+import           Control.Monad.Reader       (runReaderT, MonadIO)
+import Control.Monad.State (modify)
 import           Data.Pool
-import           Data.Text                            (Text)
-import           Database.PostgreSQL.Simple           (Connection, close,
-                                                       connect, connectDatabase,
-                                                       connectUser,
-                                                       defaultConnectInfo)
-import qualified Db                                   as Db
-import           Network.Wai                          (Application, Response)
-import           Network.Wai.Middleware.RequestLogger
-import           Serve                                (AppState, AppStateM,
-                                                       Config)
-import qualified Serve                                as Serve
+import           Data.Text                  (Text)
+import           Database.PostgreSQL.Simple (Connection, close, connect,
+                                             connectDatabase, connectUser,
+                                             defaultConnectInfo)
+import qualified Db                         as Db
+import           Network.HTTP.Types         (status500)
+import           Network.Wai                (Application, Response)
+import           Serve                      (AppState, AppStateM, Config)
+import qualified Serve                      as Serve
 import           System.IO
 import           Test.Hspec
 import           Test.Hspec.Wai
-import qualified Web.Scotty                           as S
-import           Web.Scotty.Internal.Types            hiding (Application,
-                                                       Middleware)
-import qualified Web.Scotty.Trans                     as Trans
+import qualified Web.Scotty                 as S
+import           Web.Scotty.Internal.Types  hiding (Application, Middleware)
+import qualified Web.Scotty.Trans           as Trans
 -- Specialise for our config monad
 scottyAppC :: (Monad m) => Serve.Config -> Pool Connection -> (m Response -> IO Response) -> Trans.ScottyT Text Serve.AppStateM () -> IO Application
 scottyAppC conf pool = return $ Trans.scottyAppT (runIO $ appState conf pool)
@@ -37,6 +35,11 @@ dbinfo = defaultConnectInfo { connectUser = "postgres"
                             , connectDatabase = "pastetest"
                             }
 
+stdoutHandler :: (ScottyError e, Monad m, MonadIO m) => e -> ActionT e m ()
+stdoutHandler e = do
+  Trans.liftAndCatchIO . print . showError $ e
+  Trans.status status500
+  Trans.text $ showError e
 
 app :: IO Application
 app = do
@@ -44,7 +47,8 @@ app = do
   pool <- createPool (connect dbinfo) close 2 10 5
   Trans.scottyAppT (runIO $ appState Serve.defaultConfig pool) $ do
   -- We'll only test the raw endpoints
-    Trans.middleware logStdoutDev
+    Trans.defaultHandler stdoutHandler
+
     Trans.get "/paste/raw/:key" Serve.retrievePasteRaw
     Trans.post "/paste" Serve.savePaste
   where
