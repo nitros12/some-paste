@@ -9,6 +9,7 @@ module Db ( Paste
           , cleanPastes
           , cleanMonthOld
           , createTable
+          , dropTable
           ) where
 
 import           GHC.Generics                     (Generic)
@@ -98,4 +99,9 @@ createTable c = PQ.execute_ c [sql|
         "text" TEXT NOT NULL,
         "key" INTEGER NOT NULL UNIQUE,
         "lang" Text NOT NULL)
+  |]
+
+dropTable :: PQ.Connection -> IO Int64
+dropTable c = PQ.execute_ c [sql|
+    DROP TABLE IF EXISTS "pastes"
   |]

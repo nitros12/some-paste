@@ -53,8 +53,9 @@ frontPage = do
       H.select
         H.! A.type_ "text"
         H.! A.name "lang"
-        H.! A.class_ "lang-input" $
-        mconcat $ Prelude.map makeOption (keys defaultSyntaxMap)
+        H.! A.class_ "lang-input" $ do
+          makeOption "plain"
+          mconcat $ Prelude.map makeOption (keys defaultSyntaxMap)
       H.input
         H.! A.type_ "submit"
         H.! A.value "Paste It!"
