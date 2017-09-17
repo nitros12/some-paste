@@ -44,4 +44,3 @@ highlightPaste code syntax theme = do
                              , traceOutput = False
                              }
     css = style ! type_ "text/css" $ toHtml $ styleToCss (getStyle theme)
--- TODO: visit this and strip elements that are nothing but <elem>\n</elem>
