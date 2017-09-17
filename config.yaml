@@ -1,5 +1,0 @@
-postgres-user: postgres
-max-length: 20000
-postgres-db: somepaste
-app-url: localhost
-port: 3000

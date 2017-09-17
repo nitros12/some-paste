@@ -4,11 +4,10 @@ module Main where
 
 import           Control.Monad.Reader                 (runReaderT, unless)
 import qualified Data.ByteString                      as B
+import           Data.Maybe                           (fromMaybe)
 import           Data.Pool                            (Pool, createPool,
                                                        withResource)
 import           Data.Text.Lazy                       (Text)
-import           Data.Yaml                            (encode)
-import           Data.Yaml.Config                     (loadYamlSettings, useEnv)
 import           Database.PostgreSQL.Simple           (Connection, close,
                                                        connect, connectDatabase,
                                                        connectUser,
@@ -22,14 +21,10 @@ import           Network.Wai.Middleware.RequestLogger
 import           Network.Wai.Middleware.Throttle
 import           Serve
 import           System.Directory                     (doesFileExist)
+import           System.Envy
 import           System.IO
 import           Web.Scotty.Internal.Types            hiding (Middleware)
 import           Web.Scotty.Trans
-
-makeDefaultConfig :: FilePath -> IO ()
-makeDefaultConfig configFile = do
-  exists <- doesFileExist configFile
-  unless exists $ B.writeFile configFile $ encode defaultConfig
 
 
 app :: WaiThrottle -> ScottyT Text AppStateM ()
@@ -54,8 +49,8 @@ onThrottled' _ = responseLBS status429
                  "You have been ratelimited... Stop trying to paste so much!"
 
 main = do
-  makeDefaultConfig "config.yaml"
-  conf <- loadYamlSettings ["config.yaml"] [] useEnv
+  conf <- fromMaybe defConfig <$> decode
+  print conf
   let dbinfo = defaultConnectInfo { connectUser = postgresUser conf
                                   , connectDatabase = postgresDb conf
                                   }

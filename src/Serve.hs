@@ -1,3 +1,4 @@
+{-# LANGUAGE DeriveGeneric              #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE OverloadedStrings          #-}
 module Serve where
@@ -12,13 +13,11 @@ import           Data.Text.Encoding            (encodeUtf8)
 import           Data.Text.Format              (format)
 import           Data.Text.Lazy                (Text, toStrict)
 import qualified Data.Text.Lazy                as T
-import           Data.Yaml                     (FromJSON, ToJSON, object,
-                                                parseJSON, toJSON, (.!=), (.:),
-                                                (.:?), (.=))
-import qualified Data.Yaml                     as Y
 import           Database.PostgreSQL.Simple    (Connection)
 import           Db
+import           GHC.Generics
 import           Network.HTTP.Types.Status     (Status, status404)
+import           System.Envy
 import           Templates
 import           Text.Blaze.Html.Renderer.Text
 import           Web.Scotty.Trans              (ActionT, Parsable, html,
@@ -26,30 +25,16 @@ import           Web.Scotty.Trans              (ActionT, Parsable, html,
                                                 parseParam, raise, redirect,
                                                 status, text)
 
-defaultConfig = Config 3000 20000 "localhost" "postgres" "somepaste"
+data Config = Config { port         :: Int    -- "WAI_PORT"
+                     , maxLength    :: Int64  -- "PASTE_LENGTH_CAP"
+                     , postgresUser :: String -- "PG_USER"
+                     , postgresDb   :: String -- "PG_DB"
+                     } deriving (Generic, Show)
 
-data Config = Config { port         :: Int
-                     , maxLength    :: Int64
-                     , appUrl       :: Text
-                     , postgresUser :: String
-                     , postgresDb   :: String
-                     }
+instance DefConfig Config where
+  defConfig = Config 3000 20000 "postgres" "somepaste"
 
-instance FromJSON Config where
-  parseJSON (Y.Object v) = Config
-    <$> v .:? "port" .!= port defaultConfig
-    <*> v .:? "max-length" .!= maxLength defaultConfig
-    <*> v .:? "app-url" .!= appUrl defaultConfig
-    <*> v .: "postgres-user"
-    <*> v .: "postgres-db"
-
-instance ToJSON Config where
-  toJSON (Config p l u ps db) = object [ "port" .= p
-                                       , "max-length" .= l
-                                       , "app-url" .= u
-                                       , "postgres-user" .= ps
-                                       , "postgres-db" .= db
-                                       ]
+instance FromEnv Config
 
 data AppState = AppState { config   :: Config
                          , connPool :: Pool Connection

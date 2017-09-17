@@ -1,18 +1,19 @@
 {-# LANGUAGE OverloadedStrings #-}
 module Main (main) where
 
-import           Control.Monad.Reader       (runReaderT, MonadIO)
-import Control.Monad.State (modify)
+import           Control.Monad.Reader       (MonadIO, runReaderT)
+import           Control.Monad.State        (modify)
 import           Data.Pool
 import           Data.Text                  (Text)
 import           Database.PostgreSQL.Simple (Connection, close, connect,
                                              connectDatabase, connectUser,
                                              defaultConnectInfo)
-import qualified Db                         as Db
+import qualified Db
 import           Network.HTTP.Types         (status500)
 import           Network.Wai                (Application, Response)
 import           Serve                      (AppState, AppStateM, Config)
-import qualified Serve                      as Serve
+import qualified Serve
+import           System.Envy
 import           System.IO
 import           Test.Hspec
 import           Test.Hspec.Wai
@@ -40,7 +41,7 @@ app :: IO Application
 app = do
 
   pool <- createPool (connect dbinfo) close 2 10 5
-  Trans.scottyAppT (runIO $ appState Serve.defaultConfig pool) $ do
+  Trans.scottyAppT (runIO $ appState defConfig pool) $ do
   -- We'll only test the raw endpoints
 
     Trans.get "/paste/raw/:key" Serve.retrievePasteRaw
