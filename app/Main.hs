@@ -10,7 +10,9 @@ import           Data.Pool                            (Pool, createPool,
 import           Data.Text.Lazy                       (Text)
 import           Database.PostgreSQL.Simple           (Connection, close,
                                                        connect, connectDatabase,
-                                                       connectUser,
+                                                       connectHost,
+                                                       connectPassword,
+                                                       connectPort, connectUser,
                                                        defaultConnectInfo)
 import           Db                                   (createTable)
 import           Network.HTTP.Types.Status            (status429)
@@ -51,8 +53,11 @@ onThrottled' _ = responseLBS status429
 main = do
   conf <- fromMaybe defConfig <$> decode
   print conf
-  let dbinfo = defaultConnectInfo { connectUser = postgresUser conf
-                                  , connectDatabase = postgresDb conf
+  let dbinfo = defaultConnectInfo { connectHost = pgHost conf
+                                  , connectPort = pgPort conf
+                                  , connectUser = pgUser conf
+                                  , connectPassword = pgPass conf
+                                  , connectDatabase = pgDb conf
                                   }
   pool <- createPool (connect dbinfo) close 2 10 5
   withResource pool createTable

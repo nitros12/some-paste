@@ -13,6 +13,7 @@ import           Data.Text.Encoding            (encodeUtf8)
 import           Data.Text.Format              (format)
 import           Data.Text.Lazy                (Text, toStrict)
 import qualified Data.Text.Lazy                as T
+import           Data.Word                     (Word16)
 import           Database.PostgreSQL.Simple    (Connection)
 import           Db
 import           GHC.Generics
@@ -25,14 +26,17 @@ import           Web.Scotty.Trans              (ActionT, Parsable, html,
                                                 parseParam, raise, redirect,
                                                 status, text)
 
-data Config = Config { port         :: Int    -- "WAI_PORT"
-                     , maxLength    :: Int64  -- "PASTE_LENGTH_CAP"
-                     , postgresUser :: String -- "PG_USER"
-                     , postgresDb   :: String -- "PG_DB"
+data Config = Config { port      :: Int    -- "PORT"
+                     , maxLength :: Int64  -- "PASTE_LENGTH_CAP"
+                     , pgHost    :: String -- "PGHOST"
+                     , pgPort    :: Word16 -- "PGPORT"
+                     , pgUser    :: String -- "PGUSER"
+                     , pgPass    :: String -- "PGPASS"
+                     , pgDb      :: String -- "PGDATABASE"
                      } deriving (Generic, Show)
 
 instance DefConfig Config where
-  defConfig = Config 3000 20000 "postgres" "somepaste"
+  defConfig = Config 3000 20000 "localhost" 5432 "postgres" "" "somepaste"
 
 instance FromEnv Config
 

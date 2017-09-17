@@ -3,15 +3,19 @@ module Main (main) where
 
 import           Control.Monad.Reader       (MonadIO, runReaderT)
 import           Control.Monad.State        (modify)
+import           Data.Maybe                 (fromMaybe)
 import           Data.Pool
 import           Data.Text                  (Text)
-import           Database.PostgreSQL.Simple (Connection, close, connect,
-                                             connectDatabase, connectUser,
+import           Database.PostgreSQL.Simple (ConnectInfo, Connection, close,
+                                             connect, connectDatabase,
+                                             connectHost, connectPassword,
+                                             connectPort, connectUser,
                                              defaultConnectInfo)
 import qualified Db
 import           Network.HTTP.Types         (status500)
 import           Network.Wai                (Application, Response)
-import           Serve                      (AppState, AppStateM, Config)
+import           Serve                      (AppState, AppStateM, Config, pgDb,
+                                             pgHost, pgPass, pgPort, pgUser)
 import qualified Serve
 import           System.Envy
 import           System.IO
@@ -33,13 +37,8 @@ scottyAppC conf pool = return $ Trans.scottyAppT (runIO $ appState conf pool)
                                   , Serve.connPool = p
                                   }
 
-dbinfo = defaultConnectInfo { connectUser = "postgres"
-                            , connectDatabase = "pastetest"
-                            }
-
-app :: IO Application
-app = do
-
+app :: ConnectInfo -> IO Application
+app dbinfo = do
   pool <- createPool (connect dbinfo) close 2 10 5
   Trans.scottyAppT (runIO $ appState defConfig pool) $ do
   -- We'll only test the raw endpoints
@@ -56,8 +55,8 @@ app = do
                                   }
 
 
-spec :: Spec
-spec = with app $ do
+spec :: ConnectInfo -> Spec
+spec dbinfo = with (app dbinfo) $ do
   describe "POST /paste" $ do
     it "responds with 302" $
       postHtmlForm "/paste" [("text", "aaaaa")] `shouldRespondWith` 302
@@ -79,7 +78,14 @@ spec = with app $ do
 
 main :: IO ()
 main = do
+  conf <- fromMaybe defConfig <$> decode
+  let dbinfo = defaultConnectInfo { connectHost = pgHost conf
+                                  , connectPort = pgPort conf
+                                  , connectUser = pgUser conf
+                                  , connectPassword = pgPass conf
+                                  , connectDatabase = pgDb conf
+                                  }
   conn <- connect dbinfo
   Db.dropTable conn -- cleanup
   Db.createTable conn
-  hspec spec
+  hspec $ spec dbinfo
