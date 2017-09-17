@@ -19,6 +19,9 @@ cache:
   directories:
   - $HOME/.stack
 
+services:
+  - postgresql
+
 # Ensure necessary system libraries are present
 addons:
   apt:
@@ -30,6 +33,9 @@ before_install:
 - mkdir -p ~/.local/bin
 - export PATH=$HOME/.local/bin:$PATH
 - travis_retry curl -L https://www.stackage.org/stack/linux-x86_64 | tar xz --wildcards --strip-components=1 -C ~/.local/bin '*/stack'
+
+before_script:
+  - psql -c 'create database pastetest;' -U postgres
 
 install:
 # Build dependencies
