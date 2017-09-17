@@ -24,6 +24,7 @@ services:
 
 # Ensure necessary system libraries are present
 addons:
+  postgresql: "9.6"
   apt:
     packages:
       - libgmp-dev
