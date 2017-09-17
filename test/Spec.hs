@@ -20,6 +20,7 @@ import qualified Web.Scotty                 as S
 import           Web.Scotty.Internal.Types  hiding (Application, Middleware)
 import qualified Web.Scotty.Trans           as Trans
 -- Specialise for our config monad
+
 scottyAppC :: (Monad m) => Serve.Config -> Pool Connection -> (m Response -> IO Response) -> Trans.ScottyT Text Serve.AppStateM () -> IO Application
 scottyAppC conf pool = return $ Trans.scottyAppT (runIO $ appState conf pool)
   where
@@ -35,19 +36,12 @@ dbinfo = defaultConnectInfo { connectUser = "postgres"
                             , connectDatabase = "pastetest"
                             }
 
-stdoutHandler :: (ScottyError e, Monad m, MonadIO m) => e -> ActionT e m ()
-stdoutHandler e = do
-  Trans.liftAndCatchIO . print . showError $ e
-  Trans.status status500
-  Trans.text $ showError e
-
 app :: IO Application
 app = do
 
   pool <- createPool (connect dbinfo) close 2 10 5
   Trans.scottyAppT (runIO $ appState Serve.defaultConfig pool) $ do
   -- We'll only test the raw endpoints
-    Trans.defaultHandler stdoutHandler
 
     Trans.get "/paste/raw/:key" Serve.retrievePasteRaw
     Trans.post "/paste" Serve.savePaste
