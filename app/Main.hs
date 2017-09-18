@@ -3,13 +3,10 @@
 module Main where
 
 import           Control.Concurrent                   (forkIO, threadDelay)
-import           Control.Monad.Reader                 (forever, runReaderT,
-                                                       unless)
-import qualified Data.ByteString                      as B
+import           Control.Monad.Reader                 (forever, runReaderT)
 import           Data.Maybe                           (fromMaybe)
 import           Data.Pool                            (Pool, createPool,
                                                        withResource)
-import           Data.Text.Format                     (format)
 import           Data.Text.Lazy                       (Text)
 import           Database.PostgreSQL.Simple           (Connection, close,
                                                        connect, connectDatabase,
@@ -21,14 +18,11 @@ import           Db                                   (cleanMonthOld,
                                                        createTable)
 import           Network.HTTP.Types.Status            (status429)
 import           Network.Wai
-import           Network.Wai.Handler.Warp
 import           Network.Wai.Middleware.Gzip
 import           Network.Wai.Middleware.RequestLogger
 import           Network.Wai.Middleware.Throttle
 import           Serve
-import           System.Directory                     (doesFileExist)
 import           System.Envy
-import           System.IO
 import           Web.Scotty.Internal.Types            hiding (Middleware)
 import           Web.Scotty.Trans
 
@@ -50,15 +44,18 @@ app throttler = do
   get "/paste/raw/:key" retrievePasteRaw
   post "/paste" savePaste
 
+onThrottled' :: t -> Response
 onThrottled' _ = responseLBS status429
                  [("Content-Type", "text/plain; charset=utf-8")]
                  "You have been ratelimited... Stop trying to paste so much!"
 
+backgroundDeleter :: Pool Connection -> IO ()
 backgroundDeleter pool = forever $ do
   deleted <- withResource pool cleanMonthOld
   putStrLn $ "Deleted " ++ show deleted ++ " old pastes."
   threadDelay $ 60*60*(10^5) -- 60 minutes
 
+main :: IO ()
 main = do
   conf <- fromMaybe defConfig <$> decode
   print conf

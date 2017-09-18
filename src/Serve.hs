@@ -36,7 +36,7 @@ data Config = Config { port      :: Int    -- "PORT"
                      } deriving (Generic, Show)
 
 instance DefConfig Config where
-  defConfig = Config 3000 20000 "localhost" 5432 "postgres" "" "somepaste"
+  defConfig = Config 3000 20000 "database" 5432 "postgres" "" "postgres"
 
 instance FromEnv Config
 

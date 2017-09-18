@@ -1,0 +1,19 @@
+database:
+  build: database
+site:
+  build: .
+  command: some-paste-exe
+  environment:
+    - PGHOST=database
+    - PGPORT=5432
+    - PGUSER=postgres
+    - PGPASS
+    - PGDATABASE=postgres
+  links:
+    - database
+  tty:
+    true
+  ports:
+    - "3000:3000"
+  volumes:
+    - site:/opt/server/
