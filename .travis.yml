@@ -47,4 +47,4 @@ script:
 - stack --no-terminal test --haddock --no-haddock-deps
 
 env:
-  DB=pastetest
+  PGDATABASE=pastetest
