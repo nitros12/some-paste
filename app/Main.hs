@@ -2,11 +2,14 @@
 
 module Main where
 
-import           Control.Monad.Reader                 (runReaderT, unless)
+import           Control.Concurrent                   (forkIO, threadDelay)
+import           Control.Monad.Reader                 (forever, runReaderT,
+                                                       unless)
 import qualified Data.ByteString                      as B
 import           Data.Maybe                           (fromMaybe)
 import           Data.Pool                            (Pool, createPool,
                                                        withResource)
+import           Data.Text.Format                     (format)
 import           Data.Text.Lazy                       (Text)
 import           Database.PostgreSQL.Simple           (Connection, close,
                                                        connect, connectDatabase,
@@ -14,7 +17,8 @@ import           Database.PostgreSQL.Simple           (Connection, close,
                                                        connectPassword,
                                                        connectPort, connectUser,
                                                        defaultConnectInfo)
-import           Db                                   (createTable)
+import           Db                                   (cleanMonthOld,
+                                                       createTable)
 import           Network.HTTP.Types.Status            (status429)
 import           Network.Wai
 import           Network.Wai.Handler.Warp
@@ -50,6 +54,11 @@ onThrottled' _ = responseLBS status429
                  [("Content-Type", "text/plain; charset=utf-8")]
                  "You have been ratelimited... Stop trying to paste so much!"
 
+backgroundDeleter pool = forever $ do
+  deleted <- withResource pool cleanMonthOld
+  putStrLn $ "Deleted " ++ show deleted ++ " old pastes."
+  threadDelay $ 60*60*(10^5) -- 60 minutes
+
 main = do
   conf <- fromMaybe defConfig <$> decode
   print conf
@@ -61,6 +70,7 @@ main = do
                                   }
   pool <- createPool (connect dbinfo) close 2 10 5
   withResource pool createTable
+  forkIO $ backgroundDeleter pool
 
   st <- initThrottler
   scottyT (port conf) (runIO $ appState conf pool) (app st) where
