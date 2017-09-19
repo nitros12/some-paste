@@ -1,8 +1,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 module Main (main) where
 
-import           Control.Monad.Reader       (MonadIO, runReaderT)
-import           Control.Monad.State        (modify)
+import           Control.Monad.Reader       ( runReaderT)
 import           Data.Maybe                 (fromMaybe)
 import           Data.Pool
 import           Data.Text                  (Text)
@@ -12,17 +11,13 @@ import           Database.PostgreSQL.Simple (ConnectInfo, Connection, close,
                                              connectPort, connectUser,
                                              defaultConnectInfo)
 import qualified Db
-import           Network.HTTP.Types         (status500)
 import           Network.Wai                (Application, Response)
-import           Serve                      (AppState, AppStateM, Config, pgDb,
+import           Serve                      (AppState, AppStateM, Config, pgDatabase,
                                              pgHost, pgPass, pgPort, pgUser)
 import qualified Serve
 import           System.Envy
-import           System.IO
 import           Test.Hspec
 import           Test.Hspec.Wai
-import qualified Web.Scotty                 as S
-import           Web.Scotty.Internal.Types  hiding (Application, Middleware)
 import qualified Web.Scotty.Trans           as Trans
 -- Specialise for our config monad
 
@@ -83,7 +78,7 @@ main = do
                                   , connectPort = pgPort conf
                                   , connectUser = pgUser conf
                                   , connectPassword = pgPass conf
-                                  , connectDatabase = pgDb conf
+                                  , connectDatabase = pgDatabase conf
                                   }
   conn <- connect dbinfo
   Db.dropTable conn -- cleanup

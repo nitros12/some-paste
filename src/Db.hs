@@ -12,20 +12,15 @@ module Db ( Paste
           , dropTable
           ) where
 
-import           GHC.Generics                     (Generic)
-
+import           Control.Arrow
 import           Data.Int                         (Int32, Int64)
 import           Data.Maybe                       (listToMaybe)
+import           Data.Profunctor.Product          (p5)
 import           Data.Text.Lazy                   (Text)
 import           Data.Text.Lazy                   as T
 import           Data.Time.Clock
-
 import qualified Database.PostgreSQL.Simple       as PQ
 import           Database.PostgreSQL.Simple.SqlQQ (sql)
-
-import           Control.Arrow
-import           Data.Profunctor.Product          (p5)
-
 import           Opaleye
 
 type PasteColumn = (Column PGInt8, Column PGTimestamptz, Column PGText, Column PGInt4, Column PGText)
@@ -58,9 +53,7 @@ updateLastVisit c key = do
     predicate (_, _, _, rkey, _) = rkey .== constant key
 
 getPaste :: PQ.Connection -> Int32 -> IO (Maybe Paste)
-getPaste c key = do
-  updateLastVisit c key
-  listToMaybe <$> runQuery c (pasteKeyQuery key)
+getPaste c key = updateLastVisit c key >> listToMaybe <$> runQuery c (pasteKeyQuery key)
 
 
 -- insertPaste :: PQ.Connection -> Text -> Int32 -> Text -> IO Int64

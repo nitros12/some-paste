@@ -63,7 +63,7 @@ main = do
                                   , connectPort = pgPort conf
                                   , connectUser = pgUser conf
                                   , connectPassword = pgPass conf
-                                  , connectDatabase = pgDb conf
+                                  , connectDatabase = pgDatabase conf
                                   }
   pool <- createPool (connect dbinfo) close 2 10 5
   withResource pool createTable

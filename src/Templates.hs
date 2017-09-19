@@ -5,31 +5,21 @@ module Templates ( viewPaste
                  , plainPaste
                  ) where
 
+import           Clay
+import qualified Clay                        as C
+import           Data.Map                    (keys)
+import           Data.String                 (fromString)
+import qualified Data.Text                   as ST
+import           Data.Text.Format
+import           Data.Text.Lazy              (Text, toStrict)
+import           Db                          (Paste)
+import           Highlight
+import           Skylighting.Syntax          (defaultSyntaxMap)
 import           Text.Blaze.Html5            as H
 import qualified Text.Blaze.Html5.Attributes as A
 
-import qualified Data.Text                   as ST
-import           Data.Text.Format
-import           Data.Text.Lazy              (Text, fromStrict, toStrict)
-import qualified Data.Text.Lazy              as T
-
-import           Data.Int                    (Int64)
-import           Data.Time.Clock
-
-import           Clay
-import qualified Clay                        as C
-
-import           Skylighting.Syntax          (defaultSyntaxMap)
-
-import           Db                          (Paste)
-import           Highlight
-
-import           Data.String                 (IsString, fromString)
-
-import           Data.Map                    (keys)
-
 viewPaste :: Paste -> Text -> Html
-viewPaste (_, time, paste, key, lang) theme = H.html $ do
+viewPaste (_, _, paste, key, lang) theme = H.html $ do
   H.head . H.title . lazyText $ format "Paste: {}: " [key]
   H.body $ do
     highlightPaste (toStrict paste) (toStrict lang) $ toStrict theme

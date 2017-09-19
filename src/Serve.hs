@@ -1,17 +1,18 @@
+{-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE DeriveGeneric              #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE OverloadedStrings          #-}
 module Serve where
 
 import           Control.Monad.Reader          (MonadIO, MonadReader, ReaderT,
-                                                asks, lift, when)
+                                                asks, lift, liftIO, when)
 import           Data.Digest.XXHash            (xxHash')
 import           Data.Int                      (Int32, Int64)
 import           Data.Pool                     (Pool, withResource)
 import qualified Data.Text                     as ST
 import           Data.Text.Encoding            (encodeUtf8)
 import           Data.Text.Format              (format)
-import           Data.Text.Lazy                (Text, toStrict)
+import           Data.Text.Lazy                (Text)
 import qualified Data.Text.Lazy                as T
 import           Data.Word                     (Word16)
 import           Database.PostgreSQL.Simple    (Connection)
@@ -21,22 +22,21 @@ import           Network.HTTP.Types.Status     (Status, status404)
 import           System.Envy
 import           Templates
 import           Text.Blaze.Html.Renderer.Text
-import           Web.Scotty.Trans              (ActionT, Parsable, html,
-                                                liftAndCatchIO, param, params,
-                                                parseParam, raise, redirect,
-                                                status, text)
+import           Web.Scotty.Trans              (ActionT, Parsable, html, param,
+                                                params, parseParam, raise,
+                                                redirect, status, text)
 
-data Config = Config { port      :: Int    -- "PORT"
-                     , maxLength :: Int64  -- "PASTE_LENGTH_CAP"
-                     , pgHost    :: String -- "PGHOST"
-                     , pgPort    :: Word16 -- "PGPORT"
-                     , pgUser    :: String -- "PGUSER"
-                     , pgPass    :: String -- "PGPASS"
-                     , pgDb      :: String -- "PGDATABASE"
+data Config = Config { port       :: Int    -- "PORT"
+                     , maxLength  :: Int64  -- "MAX_LENGTH"
+                     , pgHost     :: String -- "PG_HOST"
+                     , pgPort     :: Word16 -- "PG_PORT"
+                     , pgUser     :: String -- "PG_USER"
+                     , pgPass     :: String -- "PG_PASS"
+                     , pgDatabase :: String -- "PG_DATABASE"
                      } deriving (Generic, Show)
 
 instance DefConfig Config where
-  defConfig = Config 3000 20000 "database" 5432 "postgres" "" "postgres"
+  defConfig = Config 3000 20000 "localhost" 5432 "postgres" "" "postgres"
 
 instance FromEnv Config
 
@@ -67,27 +67,27 @@ retrievePaste = do
   key <- param "key"
   theme <- maybeParam "plain" "theme"
   pool <- lift $ asks connPool
-  paste <- liftAndCatchIO $ withResource pool (`getPaste` key)
+  paste <- liftIO $ withResource pool (`getPaste` key)
   case paste of
     Just p  ->  html . renderHtml $ viewPaste p theme
     Nothing -> errorWith status404 $ format "Paste {} not found" [key]
 
 savePaste :: ActionC ()
 savePaste = do
-  maxLength <- lift (maxLength <$> asks config)
+  max_length <- lift (maxLength <$> asks config)
   lang <- maybeParam "plain" "lang"
   paste <- param "text"
-  when (T.length paste > maxLength) $ raise (format "Paste over length: {}" [maxLength])
+  when (T.length paste > max_length) $ raise (format "Paste over length: {}" [max_length])
   let key = hashPaste $ T.toStrict (T.append paste lang)
   pool <- lift $ asks connPool
-  liftAndCatchIO $ withResource pool (\conn -> insertPaste conn paste key lang)
+  liftIO $ withResource pool (\conn -> insertPaste conn paste key lang)
   redirect (format "/paste/{}" [key])
 
 retrievePasteRaw :: ActionC ()
 retrievePasteRaw = do
   key <- param "key"
   pool <- lift $ asks connPool
-  paste <- liftAndCatchIO $ withResource pool (`getPaste` key)
+  paste <- liftIO $ withResource pool (`getPaste` key)
   case paste of
     Just p  -> text . plainPaste $ p
     Nothing -> errorWith status404 $ format "Paste {} not found" [key]

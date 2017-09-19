@@ -5,10 +5,7 @@ module Highlight ( highlightPaste
 
 import           Data.Text                   (Text)
 import           Data.Text                   as T
-
 import           Skylighting
-import           Skylighting.Types
-
 import           Text.Blaze.Html5            hiding (map)
 import           Text.Blaze.Html5.Attributes (type_)
 
@@ -31,11 +28,11 @@ getStyle s = case s of
 
 -- |A helper function to highlight a paste
 highlightPaste :: Text -> Text -> Text -> Html
-highlightPaste code syntax theme = do
+highlightPaste paste syntax theme = do
   let syntax' = lookupSyntax syntax defaultSyntaxMap
-  case syntax' >>= (\s -> eitherToMaybe $ tokenize config s code) of
+  case syntax' >>= (\s -> eitherToMaybe $ tokenize config s paste) of
       Just v  -> formatHtmlBlock opts v >> css
-      Nothing -> formatHtmlBlock opts (buildLines code) >> css
+      Nothing -> formatHtmlBlock opts (buildLines paste) >> css
   where
     opts = defaultFormatOpts { numberLines = True
                              , lineAnchors = True
