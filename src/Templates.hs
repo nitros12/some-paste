@@ -26,6 +26,7 @@ viewPaste (_, _, paste, key, lang) theme = H.html $ do
   H.head $ do
     H.title . H.lazyText $ format "Paste: {}: " [key]
     openGraph "og:type" "website"
+    openGraph "og:site_name" "somepaste"
     openGraph "og:title" $ fromString . unpack $ T.take 120 paste
     openGraph "og:description" "A bad paste service, written in haskell."
   H.body $ do
