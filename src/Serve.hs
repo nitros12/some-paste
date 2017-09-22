@@ -1,7 +1,8 @@
-{-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE DeriveGeneric              #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE OverloadedStrings          #-}
+{-# LANGUAGE ScopedTypeVariables        #-}
+
 module Serve where
 
 import           Control.Monad.Reader          (MonadIO, MonadReader, ReaderT,
@@ -26,26 +27,29 @@ import           Web.Scotty.Trans              (ActionT, Parsable, html, param,
                                                 params, parseParam, raise,
                                                 redirect, status, text)
 
-data Config = Config { port       :: Int    -- "PORT"
-                     , maxLength  :: Int64  -- "MAX_LENGTH"
-                     , pgHost     :: String -- "PG_HOST"
-                     , pgPort     :: Word16 -- "PG_PORT"
-                     , pgUser     :: String -- "PG_USER"
-                     , pgPass     :: String -- "PG_PASS"
-                     , pgDatabase :: String -- "PG_DATABASE"
-                     } deriving (Generic, Show)
+data Config = Config
+  { port       :: Int -- "PORT"
+  , maxLength  :: Int64 -- "MAX_LENGTH"
+  , pgHost     :: String -- "PG_HOST"
+  , pgPort     :: Word16 -- "PG_PORT"
+  , pgUser     :: String -- "PG_USER"
+  , pgPass     :: String -- "PG_PASS"
+  , pgDatabase :: String -- "PG_DATABASE"
+  } deriving (Generic, Show)
 
 instance DefConfig Config where
   defConfig = Config 3000 20000 "localhost" 5432 "postgres" "" "postgres"
 
 instance FromEnv Config
 
-data AppState = AppState { config   :: Config
-                         , connPool :: Pool Connection
-                         }
+data AppState = AppState
+  { config   :: Config
+  , connPool :: Pool Connection
+  }
 
-newtype AppStateM a = AppStateM { runAppStateM :: ReaderT AppState IO a
-                                } deriving (Applicative, Functor, Monad, MonadIO, MonadReader AppState)
+newtype AppStateM a = AppStateM
+  { runAppStateM :: ReaderT AppState IO a
+  } deriving (Applicative, Functor, Monad, MonadIO, MonadReader AppState)
 
 type ActionC = ActionT Text AppStateM
 
@@ -69,7 +73,7 @@ retrievePaste = do
   pool <- lift $ asks connPool
   paste <- liftIO $ withResource pool (`getPaste` key)
   case paste of
-    Just p  ->  html . renderHtml $ viewPaste p theme
+    Just p  -> html . renderHtml $ viewPaste p theme
     Nothing -> errorWith status404 $ format "Paste {} not found" [key]
 
 savePaste :: ActionC ()
@@ -77,7 +81,8 @@ savePaste = do
   max_length <- lift (maxLength <$> asks config)
   lang <- maybeParam "plain" "lang"
   paste <- param "text"
-  when (T.length paste > max_length) $ raise (format "Paste over length: {}" [max_length])
+  when (T.length paste > max_length) $
+    raise (format "Paste over length: {}" [max_length])
   let key = hashPaste $ T.toStrict (T.append paste lang)
   pool <- lift $ asks connPool
   liftIO $ withResource pool (\conn -> insertPaste conn paste key lang)

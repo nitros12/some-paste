@@ -5,35 +5,49 @@ module Templates ( viewPaste
                  , plainPaste
                  ) where
 
-import           Clay
+import           Clay                        (background, height, margin, nil,
+                                              none, outline, pct, transparent,
+                                              width, ( # ), (-:), (?))
 import qualified Clay                        as C
 import           Data.Map                    (keys)
 import           Data.String                 (fromString)
 import qualified Data.Text                   as ST
 import           Data.Text.Format
-import           Data.Text.Lazy              (Text, toStrict)
+import           Data.Text.Lazy              (unpack, Text, toStrict)
+import qualified Data.Text.Lazy as T
 import           Db                          (Paste)
 import           Highlight
 import           Skylighting.Syntax          (defaultSyntaxMap)
-import           Text.Blaze.Html5            as H
+import qualified Text.Blaze.Html5            as H
 import qualified Text.Blaze.Html5.Attributes as A
 
-viewPaste :: Paste -> Text -> Html
+viewPaste :: Paste -> Text -> H.Html
 viewPaste (_, _, paste, key, lang) theme = H.html $ do
-  H.head . H.title . lazyText $ format "Paste: {}: " [key]
+  H.head $ do
+    H.title . H.lazyText $ format "Paste: {}: " [key]
+    openGraph "og:type" "website"
+    openGraph "og:title" $ fromString . unpack $ T.take 120 paste
+    openGraph "og:description" "A bad paste service, written in haskell."
   H.body $ do
     highlightPaste (toStrict paste) (toStrict lang) $ toStrict theme
-    H.style H.! A.type_ "text/css" $ toHtml . C.render $ do
+    H.style H.! A.type_ "text/css" $ H.toHtml . C.render $ do
       C.body ? margin nil nil nil nil
       C.table # ".sourceCode" ? height (pct 100)
       C.td # ".lineNumbers" ? C.width (C.em 1)
 
-makeOption :: ST.Text -> Html
+makeOption :: ST.Text -> H.Html
 makeOption v = H.option H.! A.value (fromString . ST.unpack $ v) $ H.toHtml v
 
-frontPage :: Html
+openGraph :: H.AttributeValue -> H.AttributeValue -> H.Html
+openGraph p c = H.meta H.! H.customAttribute "property" p H.! A.content c
+
+frontPage :: H.Html
 frontPage = do
-  H.head . H.title $ "SomePaste"
+  H.head $ do
+    H.title "SomePaste"
+    openGraph "og:type" "website"
+    openGraph "og:title" "somepaste"
+    openGraph "og:description" "A bad paste service, written in haskell."
   H.body $ do
     H.form H.! A.action "/paste" H.! A.method "post" $ do
       H.textarea ""
@@ -49,7 +63,7 @@ frontPage = do
       H.input
         H.! A.type_ "submit"
         H.! A.value "Paste It!"
-    H.style H.! A.type_ "text/css" $ toHtml . C.render $
+    H.style H.! A.type_ "text/css" $ H.toHtml . C.render $
       C.textarea # ".code-input" ? do
         width (pct 100)
         height (pct 80)
