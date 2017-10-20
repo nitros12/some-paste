@@ -1,9 +1,11 @@
+{-# OPTIONS_GHC -fno-warn-type-defaults #-}
+{-# OPTIONS_GHC -fno-warn-name-shadowing #-}
 {-# LANGUAGE OverloadedStrings #-}
 
 module Main where
 
 import           Control.Concurrent                   (forkIO, threadDelay)
-import           Control.Monad.Reader                 (forever, runReaderT)
+import           Control.Monad.Reader                 (void, forever, runReaderT)
 import           Data.Maybe                           (fromMaybe)
 import           Data.Pool                            (Pool, createPool,
                                                        withResource)
@@ -25,6 +27,7 @@ import           Serve
 import           System.Envy
 import           Web.Scotty.Internal.Types            hiding (Middleware)
 import           Web.Scotty.Trans
+import System.Remote.Monitoring
 
 
 app :: WaiThrottle -> ScottyT Text AppStateM ()
@@ -66,8 +69,9 @@ main = do
                                   , connectDatabase = pgDatabase conf
                                   }
   pool <- createPool (connect dbinfo) close 2 10 5
-  withResource pool createTable
-  forkIO $ backgroundDeleter pool
+  void . withResource pool $ createTable
+  void . forkIO $ backgroundDeleter pool
+  void . forkServer "localhost" $ 8000
 
   st <- initThrottler
   scottyT (port conf) (runIO $ appState conf pool) (app st) where
