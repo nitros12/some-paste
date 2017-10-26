@@ -82,6 +82,6 @@ nord :: Style
 nord = Style { tokenStyles = colours
              , defaultColor = nord6
              , backgroundColor = nord3
-             , lineNumberColor = nord7
+             , lineNumberColor = nord3
              , lineNumberBackgroundColor = nord3
              }
