@@ -5,6 +5,7 @@ module Highlight ( highlightPaste
 
 import           Data.Text                   (Text)
 import           Data.Text                   as T
+import           NordSyntax                  (nord)
 import           Skylighting
 import           Text.Blaze.Html5            hiding (map)
 import           Text.Blaze.Html5.Attributes (type_)
@@ -24,7 +25,8 @@ getStyle s = case s of
   "haddock"     ->  haddock
   "monochrome"  ->  monochrome
   "breeze-dark" ->  breezeDark
-  _             ->  pygments
+  "pygments"    ->  pygments
+  _             ->  nord
 
 -- |A helper function to highlight a paste
 highlightPaste :: Text -> Text -> Text -> Html

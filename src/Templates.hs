@@ -33,7 +33,11 @@ viewPaste (_, _, paste, key, lang) theme = H.html $ do
     highlightPaste (toStrict paste) (toStrict lang) $ toStrict theme
     H.style H.! A.type_ "text/css" $ H.toHtml . C.render $ do
       C.body ? margin nil nil nil nil
-      C.table # ".sourceCode" ? height (pct 100)
+      C.pre # ".sourceCode" ? do
+        height (pct 100)
+        margin 0 0 0 (C.em 3)
+      C.a # ".sourceLine" ? do
+        C.textDecoration C.none
       C.td # ".lineNumbers" ? C.width (C.em 1)
 
 makeOption :: ST.Text -> H.Html

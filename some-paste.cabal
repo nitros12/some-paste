@@ -1,5 +1,5 @@
 name:                some-paste
-version:             0.1.0.3
+version:             0.1.0.4
 synopsis: Simple code paste service using Postgres as a backend
 homepage:            https://github.com/nitros12/some-paste#readme
 license:             BSD3
@@ -18,8 +18,9 @@ library
                      , Highlight
                      , Templates
                      , Serve
+                     , NordSyntax
   build-depends:       base >= 4.7 && < 5
-                     , skylighting >= 0.3
+                     , skylighting >= 0.4
                      , postgresql-simple >= 0.5
                      , opaleye >= 0.5
                      , product-profunctors >= 0.8
