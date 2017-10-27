@@ -81,7 +81,7 @@ colours = [(KeywordTok, TokenStyle nord9 Nothing False False False)
 nord :: Style
 nord = Style { tokenStyles = colours
              , defaultColor = nord6
-             , backgroundColor = nord2
-             , lineNumberColor = nord3
-             , lineNumberBackgroundColor = nord3
+             , backgroundColor = nord1
+             , lineNumberColor = nord1
+             , lineNumberBackgroundColor = nord1
              }
