@@ -99,3 +99,6 @@ retrievePasteRaw = do
 
 pageIndex :: ActionC ()
 pageIndex = html . renderHtml $ frontPage
+
+pageAbout :: ActionC ()
+pageAbout = html . renderHtml $ aboutPage

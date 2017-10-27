@@ -43,6 +43,7 @@ app throttler = do
   middleware $ throttle settings throttler
 
   get "/" pageIndex
+  get "/about" pageAbout
   get "/paste/:key" retrievePaste
   get "/paste/raw/:key" retrievePasteRaw
   post "/paste" savePaste
