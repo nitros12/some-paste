@@ -72,7 +72,7 @@ main = do
   pool <- createPool (connect dbinfo) close 2 10 5
   void . withResource pool $ createTable
   void . forkIO $ backgroundDeleter pool
-  void . forkServer "localhost" $ 8000
+  void . forkServer (host conf) $ 8000
 
   st <- initThrottler
   scottyT (port conf) (runIO $ appState conf pool) (app st) where

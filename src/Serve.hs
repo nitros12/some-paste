@@ -7,6 +7,7 @@ module Serve where
 
 import           Control.Monad.Reader          (MonadIO, MonadReader, ReaderT,
                                                 asks, lift, liftIO, when)
+import           Data.ByteString               (ByteString)
 import           Data.Digest.XXHash            (xxHash')
 import           Data.Int                      (Int32, Int64)
 import           Data.Pool                     (Pool, withResource)
@@ -28,7 +29,8 @@ import           Web.Scotty.Trans              (ActionT, Parsable, html, param,
                                                 redirect, status, text)
 
 data Config = Config
-  { port       :: Int -- "PORT"
+  { host       :: ByteString -- "HOST"
+  , port       :: Int -- "PORT"
   , maxLength  :: Int64 -- "MAX_LENGTH"
   , pgHost     :: String -- "PG_HOST"
   , pgPort     :: Word16 -- "PG_PORT"
@@ -38,7 +40,7 @@ data Config = Config
   } deriving (Generic, Show)
 
 instance DefConfig Config where
-  defConfig = Config 3000 20000 "localhost" 5432 "postgres" "" "postgres"
+  defConfig = Config "localhost" 3000 20000 "localhost" 5432 "postgres" "" "postgres"
 
 instance FromEnv Config
 

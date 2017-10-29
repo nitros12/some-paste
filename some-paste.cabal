@@ -23,6 +23,7 @@ library
                      , skylighting >= 0.4
                      , postgresql-simple >= 0.5
                      , opaleye >= 0.5
+                     , bytestring >= 0.10
                      , product-profunctors >= 0.8
                      , blaze-html >= 0.9
                      , time >= 1.6

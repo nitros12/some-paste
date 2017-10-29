@@ -1,0 +1,18 @@
+version: '3'
+
+services:
+  db:
+    image: postgres
+  web:
+    environment:
+      - PORT=8000
+      - PG_HOST=db
+      - HOST=0.0.0.0
+    build: .
+    command: some-paste-exe
+    volumes:
+      - .:/code
+    ports:
+      - "8000:8000"
+    depends_on:
+      - db
