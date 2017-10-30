@@ -5,14 +5,15 @@ services:
     image: postgres
   web:
     environment:
-      - PORT=8000
+      - PORT=3000
       - PG_HOST=db
       - HOST=0.0.0.0
     build: .
-    command: some-paste-exe
+    command: ["./wait-for-postgres.sh", "db", "some-paste-exe"]
     volumes:
       - .:/code
     ports:
-      - "8000:8000"
+      - "3000:3000"
     depends_on:
       - db
+    tty: true
