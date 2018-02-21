@@ -5,7 +5,7 @@
 
 module Serve where
 
-import           Control.Monad.Reader          (MonadIO, MonadReader, ReaderT,
+import           Control.Monad.Reader          (void, MonadIO, MonadReader, ReaderT,
                                                 asks, lift, liftIO, when)
 import           Data.ByteString               (ByteString)
 import           Data.Digest.XXHash            (xxHash')
@@ -16,6 +16,7 @@ import           Data.Text.Encoding            (encodeUtf8)
 import           Data.Text.Format              (format)
 import           Data.Text.Lazy                (Text)
 import qualified Data.Text.Lazy                as T
+import           Data.Maybe                    (fromMaybe)
 import           Data.Word                     (Word16)
 import           Database.PostgreSQL.Simple    (Connection)
 import           Db
@@ -55,6 +56,9 @@ newtype AppStateM a = AppStateM
 
 type ActionC = ActionT Text AppStateM
 
+rightToMaybe :: Either a b -> Maybe b
+rightToMaybe = either (const Nothing) Just
+
 hashPaste :: ST.Text -> Int32
 hashPaste = fromIntegral . xxHash' . encodeUtf8
 
@@ -64,9 +68,7 @@ errorWith code reason = status code >> text reason
 maybeParam :: Parsable a => a -> Text -> ActionC a
 maybeParam d key = do
   paramList <- params
-  case lookup key paramList of
-    Just a  -> return $ either (const d) id $ parseParam a
-    Nothing -> return d
+  return . fromMaybe d $ lookup key paramList >>= rightToMaybe . parseParam
 
 retrievePaste :: ActionC ()
 retrievePaste = do
@@ -87,7 +89,7 @@ savePaste = do
     raise (format "Paste over length: {}" [max_length])
   let key = hashPaste $ T.toStrict (T.append paste lang)
   pool <- lift $ asks connPool
-  liftIO $ withResource pool (\conn -> insertPaste conn paste key lang)
+  void . liftIO $ withResource pool (\conn -> insertPaste conn paste key lang)
   redirect (format "/paste/{}" [key])
 
 retrievePasteRaw :: ActionC ()

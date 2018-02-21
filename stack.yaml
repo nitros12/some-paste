@@ -2,7 +2,7 @@ flags: {}
 extra-package-dbs: []
 packages:
 - .
+allow-newer: true
 extra-deps:
-- skylighting-0.4.2
-- xxhash-0.0.2
-resolver: lts-9.3
+  - cabal-helper-0.7.3.0
+resolver: lts-10.3

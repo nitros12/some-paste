@@ -1,5 +1,6 @@
 module NordSyntax (nord) where
 
+import           Data.Map.Lazy     (Map, fromList)
 import           Skylighting.Types
 
 
@@ -51,32 +52,32 @@ nord14 = toColor "#A3BE8C"
 nord15 :: Maybe Color
 nord15 = toColor "#B48EAD"
 
-colours :: [(TokenType, TokenStyle)]
-colours = [(KeywordTok, TokenStyle nord9 Nothing False False False)
-          ,(DataTypeTok, TokenStyle nord15 Nothing False False False)
-          ,(DecValTok, TokenStyle nord15 Nothing False False False)
-          ,(BaseNTok, TokenStyle nord15 Nothing False False False)
-          ,(FloatTok, TokenStyle nord15 Nothing False False False)
-          ,(ConstantTok, TokenStyle nord4 Nothing True False False)
-          ,(CharTok, TokenStyle nord14 Nothing False False False)
-          ,(SpecialCharTok, TokenStyle nord14 Nothing False False False)
-          ,(StringTok, TokenStyle nord14 Nothing False False False)
-          ,(VerbatimStringTok, TokenStyle nord13 Nothing False False False)
-          ,(SpecialStringTok, TokenStyle nord13 Nothing False False False)
-          ,(ImportTok, TokenStyle nord9 Nothing True False False)
-          ,(CommentTok, TokenStyle nord4 Nothing False False False)
-          ,(DocumentationTok, TokenStyle nord12 Nothing False False False)
-          ,(AnnotationTok, TokenStyle nord12 Nothing False False False)
-          ,(CommentVarTok, TokenStyle nord4 Nothing False False False)
-          ,(OtherTok, TokenStyle nord4 Nothing False False False)
-          ,(FunctionTok, TokenStyle nord8 Nothing False False False)
-          ,(VariableTok, TokenStyle nord4 Nothing False False False)
-          ,(ControlFlowTok, TokenStyle nord9 Nothing True False False)
-          ,(OperatorTok, TokenStyle nord9 Nothing False False False)
-          ,(BuiltInTok, TokenStyle nord9 Nothing False False False)
-          ,(PreprocessorTok, TokenStyle nord10 Nothing True False False)
-          ,(AttributeTok, TokenStyle nord7 Nothing False False False)
-          ,(NormalTok, TokenStyle nord6 Nothing False False False)]
+colours :: Map TokenType TokenStyle
+colours = fromList [(KeywordTok, TokenStyle nord9 Nothing False False False)
+                   ,(DataTypeTok, TokenStyle nord15 Nothing False False False)
+                   ,(DecValTok, TokenStyle nord15 Nothing False False False)
+                   ,(BaseNTok, TokenStyle nord15 Nothing False False False)
+                   ,(FloatTok, TokenStyle nord15 Nothing False False False)
+                   ,(ConstantTok, TokenStyle nord4 Nothing True False False)
+                   ,(CharTok, TokenStyle nord14 Nothing False False False)
+                   ,(SpecialCharTok, TokenStyle nord14 Nothing False False False)
+                   ,(StringTok, TokenStyle nord14 Nothing False False False)
+                   ,(VerbatimStringTok, TokenStyle nord13 Nothing False False False)
+                   ,(SpecialStringTok, TokenStyle nord13 Nothing False False False)
+                   ,(ImportTok, TokenStyle nord9 Nothing True False False)
+                   ,(CommentTok, TokenStyle nord4 Nothing False False False)
+                   ,(DocumentationTok, TokenStyle nord12 Nothing False False False)
+                   ,(AnnotationTok, TokenStyle nord12 Nothing False False False)
+                   ,(CommentVarTok, TokenStyle nord4 Nothing False False False)
+                   ,(OtherTok, TokenStyle nord4 Nothing False False False)
+                   ,(FunctionTok, TokenStyle nord8 Nothing False False False)
+                   ,(VariableTok, TokenStyle nord4 Nothing False False False)
+                   ,(ControlFlowTok, TokenStyle nord9 Nothing True False False)
+                   ,(OperatorTok, TokenStyle nord9 Nothing False False False)
+                   ,(BuiltInTok, TokenStyle nord9 Nothing False False False)
+                   ,(PreprocessorTok, TokenStyle nord10 Nothing True False False)
+                   ,(AttributeTok, TokenStyle nord7 Nothing False False False)
+                   ,(NormalTok, TokenStyle nord6 Nothing False False False)]
 
 nord :: Style
 nord = Style { tokenStyles = colours

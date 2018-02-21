@@ -10,7 +10,7 @@ copyright:           MIT
 category:            paste
 build-type:          Simple
 extra-source-files:  README.md
-cabal-version:       >=1.10
+cabal-version:       >=2.0
 
 library
   hs-source-dirs:      src
