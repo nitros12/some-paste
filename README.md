@@ -4,3 +4,5 @@
 
 A paste bin service written in haskell
 Uses postgres as a backend
+
+[Try it here!](https://paste.i-am-webscale.xyz/)
