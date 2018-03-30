@@ -85,7 +85,7 @@ errorWith :: Status -> Text -> ActionC ()
 errorWith code reason = status code >> text reason
 
 canCache :: ActionC ()
-canCache = addHeader "Cache-Control" "public; max-age=31536000"
+canCache = addHeader "Cache-Control" "max-age=31536000"
 
 maybeParam :: Parsable a => a -> Text -> ActionC a
 maybeParam d key = do
