@@ -1,16 +1,20 @@
+{-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
 
 module Templates ( viewPaste
                  , frontPage
                  , plainPaste
                  , aboutPage
+                 , getPageCss
                  ) where
 
+import           BasicPrelude                hiding (Text)
 import           Clay                        (background, height, margin, nil,
                                               none, outline, pct, transparent,
                                               width, ( # ), (-:), (?))
 import qualified Clay                        as C
 import           Data.Map                    (keys)
+import           Data.Monoid                 ((<>))
 import           Data.String                 (fromString)
 import qualified Data.Text                   as ST
 import           Data.Text.Format
@@ -22,24 +26,20 @@ import           Skylighting.Syntax          (defaultSyntaxMap)
 import qualified Text.Blaze.Html5            as H
 import qualified Text.Blaze.Html5.Attributes as A
 
+tshow' = T.fromStrict . tshow
+
 viewPaste :: Paste -> Text -> H.Html
 viewPaste (_, _, paste, key, lang) theme = H.html $ do
   H.head $ do
-    H.title . H.lazyText $ format "Paste: {}: " [key]
+    H.title . H.lazyText $ "Paste: {}: " <> tshow' key
+    H.link H.! A.href "/style/paste" H.! A.rel "stylesheet"
+    includeStyle $ toStrict theme
     openGraph "og:type" "website"
     openGraph "og:site_name" "somepaste"
     openGraph "og:title" $ fromString . unpack $ T.take 120 paste
     openGraph "og:description" "A bad paste service, written in haskell."
-  H.body $ do
-    highlightPaste (toStrict paste) (toStrict lang) $ toStrict theme
-    H.style H.! A.type_ "text/css" $ H.toHtml . C.render $ do
-      C.body ? margin nil nil nil nil
-      C.pre # ".sourceCode" ? -- do
-        -- height (pct 100)
-        margin 0 0 0 (C.em 3)
-      C.a # ".sourceLine" ? C.textDecoration C.none
-      C.td # ".lineNumbers" ? C.width (C.em 1)
-      C.body ? C.backgroundColor "#2E3440"
+  H.body $ highlightPaste (toStrict paste) (toStrict lang) $ toStrict theme
+
 
 makeOption :: ST.Text -> H.Html
 makeOption v = H.option H.! A.value (fromString . ST.unpack $ v) $ H.toHtml v
@@ -51,6 +51,7 @@ frontPage :: H.Html
 frontPage = do
   H.head $ do
     H.title "SomePaste"
+    H.link H.! A.href "/style/front" H.! A.rel "stylesheet"
     openGraph "og:type" "website"
     openGraph "og:title" "somepaste"
     openGraph "og:description" "A bad paste service, written in haskell."
@@ -65,7 +66,7 @@ frontPage = do
         H.! A.name "lang"
         H.! A.class_ "lang-input" $ do
           makeOption "plain"
-          mconcat $ Prelude.map makeOption (keys defaultSyntaxMap)
+          mconcat $ map makeOption (keys defaultSyntaxMap)
       H.input
         H.! A.type_ "submit"
         H.! A.value "Paste It!"
@@ -73,26 +74,40 @@ frontPage = do
         H.! A.href "/about"
         H.! A.class_ "about-button" $
         "about"
-    H.style H.! A.type_ "text/css" $ H.toHtml . C.render $ do
-      C.body ? C.backgroundColor "#2E3440"
-      C.a # ".about-button" ? do
-        C.float C.floatRight
-        C.color "#ECEFF4"
-      C.textarea # ".code-input" ? do
-        width (pct 100)
-        height (pct 80)
-        outline none none none
-        C.color "#ECEFF4"
-        background transparent
-        "resize" -: "none"
+
+
+getPageCss :: ST.Text -> H.Html
+getPageCss "front" = do
+  H.toHtml . C.render $ do
+    C.body ? C.backgroundColor "#2E3440"
+    C.a # ".about-button" ? do
+      C.float C.floatRight
+      C.color "#ECEFF4"
+    C.textarea # ".code-input" ? do
+      width (pct 100)
+      height (pct 80)
+      outline none none none
+      C.color "#ECEFF4"
+      background transparent
+      "resize" -: "none"
+getPageCss "paste" = do
+  H.toHtml . C.render $ do
+    C.body ? margin nil nil nil nil
+    C.pre # ".sourceCode" ? -- do
+      -- height (pct 100)
+      margin 0 0 0 (C.em 3)
+    C.a # ".sourceLine" ? C.textDecoration C.none
+    C.td # ".lineNumbers" ? C.width (C.em 1)
+    C.body ? C.backgroundColor "#2E3440"
+
 
 aboutPage :: H.Html
-aboutPage = viewPaste (undefined, undefined, aboutText, 0, "plain") "nord"
-  where aboutText = T.pack . unlines $ ["SomePaste is a paste service written by Nitros [https://github.com/nitros12]"
-                                       ,"The site is written entirely in Haskell, using Postgres as the data store."
-                                       ,"My main focus when building this was speed, since other paste services are very slow"
-                                       ,"This site uses no JavaScript, the entire page is sent in one request."
-                                       ,"I average about 40ms per request with the site being 5kb in size."]
+aboutPage = viewPaste (undefined, undefined, T.fromStrict aboutText, 0, "plain") "nord"
+  where aboutText = unlines ["SomePaste is a paste service written by Nitros [https://github.com/nitros12]"
+                            ,"The site is written entirely in Haskell, using Postgres as the data store."
+                            ,"My main focus when building this was speed, since other paste services are very slow"
+                            ,"This site uses no JavaScript, the entire page is sent in one request."
+                            ,"I average about 8ms per request with the site being 5kb in size."]
 
 
 plainPaste :: Paste -> Text

@@ -48,6 +48,7 @@ dependencies:
 - wai
 - hspec
 - hspec-wai
+- basic-prelude
 
 library:
   source-dirs: src

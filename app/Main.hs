@@ -1,15 +1,18 @@
 {-# OPTIONS_GHC -fno-warn-type-defaults #-}
 {-# OPTIONS_GHC -fno-warn-name-shadowing #-}
+{-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
 
 module Main where
 
+import           BasicPrelude                         hiding (Text)
 import           Control.Concurrent                   (forkIO, threadDelay)
-import           Control.Monad.Reader                 (void, forever, runReaderT)
+import           Control.Monad.Reader                 (forever, runReaderT,
+                                                       void)
 import           Data.Maybe                           (fromMaybe)
 import           Data.Pool                            (Pool, createPool,
                                                        withResource)
-import           Data.Text.Lazy                       (Text)
+import           Data.Text.Lazy                       (Text, fromStrict)
 import           Database.PostgreSQL.Simple           (Connection, close,
                                                        connect, connectDatabase,
                                                        connectHost,
@@ -25,10 +28,9 @@ import           Network.Wai.Middleware.RequestLogger
 import           Network.Wai.Middleware.Throttle
 import           Serve
 import           System.Envy
+import           System.Remote.Monitoring
 import           Web.Scotty.Internal.Types            hiding (Middleware)
 import           Web.Scotty.Trans
-import System.Remote.Monitoring
-
 
 app :: WaiThrottle -> ScottyT Text AppStateM ()
 app throttler = do
@@ -39,13 +41,15 @@ app throttler = do
                                          }
 
   middleware . gzip $ def { gzipFiles = GzipCompress }
-  middleware logStdoutDev
+  -- middleware logStdoutDev
   middleware $ throttle settings throttler
 
   get "/" pageIndex
   get "/about" pageAbout
   get "/paste/:key" retrievePaste
   get "/paste/raw/:key" retrievePasteRaw
+  get "/theme/:name" getTheme
+  get "/style/:type" getBaseStyle
   post "/paste" savePaste
 
 onThrottled' :: t -> Response
@@ -56,7 +60,7 @@ onThrottled' _ = responseLBS status429
 backgroundDeleter :: Pool Connection -> IO ()
 backgroundDeleter pool = forever $ do
   deleted <- withResource pool cleanMonthOld
-  putStrLn $ "Deleted " ++ show deleted ++ " old pastes."
+  putStrLn $ "Deleted " <> tshow deleted <> " old pastes."
   threadDelay $ 60*60*(10^5) -- 60 minutes
 
 main :: IO ()

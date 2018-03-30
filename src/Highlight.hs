@@ -1,16 +1,19 @@
 {-# LANGUAGE OverloadedStrings #-}
 
 module Highlight ( highlightPaste
+                 , getStyleCss
+                 , includeStyle
                  ) where
 
 import           Data.Either                 (fromRight)
 import           Data.Maybe                  (fromMaybe)
+import           Data.Monoid                 ((<>))
 import           Data.Text                   (Text)
 import           Data.Text                   as T
 import           NordSyntax                  (nord)
 import           Skylighting
 import           Text.Blaze.Html5            hiding (map)
-import           Text.Blaze.Html5.Attributes (type_)
+import           Text.Blaze.Html5.Attributes (href, rel, type_)
 
 -- |Split text into a list of sourcelines
 buildLines :: Text -> [SourceLine]
@@ -34,6 +37,10 @@ tokenizePaste paste syntax = fromRight (buildLines paste) (tokenize config synta
                              , traceOutput = False
                              }
 
+includeStyle :: Text -> Html
+includeStyle s = link ! href url ! rel "stylesheet"
+    where url = toValue $ "/theme/" <> s
+
 -- |A helper function to highlight a paste
 highlightPaste :: Text -> Text -> Text -> Html
 highlightPaste paste syntax theme = do
@@ -42,9 +49,14 @@ highlightPaste paste syntax theme = do
               (tokenizePaste paste <$> lookupSyntax syntax defaultSyntaxMap)
 
   formatHtmlBlock opts lines'
-  style ! type_ "text/css" $ toHtml $ styleToCss (getStyle theme)
+  -- style ! type_ "text/css" $ toHtml $ styleToCss (getStyle theme)
 
   where
     opts = defaultFormatOpts { numberLines = True
                              , lineAnchors = True
                              }
+
+getStyleCss :: Text -> Html
+getStyleCss s = do
+  let s' = getStyle s
+  toHtml $ styleToCss (s')

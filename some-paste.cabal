@@ -2,7 +2,7 @@
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 4b52f7b7599a6354ec20cba919326880bcfa33155db8ae3b6ecf91d1cf87721d
+-- hash: 86c1036bbdff853e240725284a497d4d89119a23f153b188474720622e567966
 
 name:           some-paste
 version:        0.1.0.4
@@ -29,6 +29,7 @@ library
       src
   build-depends:
       base >=4.7 && <5
+    , basic-prelude
     , blaze-html >=0.9
     , bytestring >=0.10
     , clay >=0.12
@@ -72,6 +73,7 @@ executable some-paste-exe
   ghc-options: -threaded -rtsopts -with-rtsopts=-N -O2
   build-depends:
       base >=4.7 && <5
+    , basic-prelude
     , blaze-html >=0.9
     , bytestring >=0.10
     , clay >=0.12
@@ -111,6 +113,7 @@ test-suite some-paste-test
   ghc-options: -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       base >=4.7 && <5
+    , basic-prelude
     , blaze-html >=0.9
     , bytestring >=0.10
     , clay >=0.12
