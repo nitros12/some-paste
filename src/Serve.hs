@@ -58,7 +58,7 @@ data Config = Config
   } deriving (Generic, Show)
 
 instance DefConfig Config where
-  defConfig = Config "localhost" 3000 100000 "localhost" 5432 "postgres" "" "postgres"
+  defConfig = Config "localhost" 3000 1000000 "localhost" 5432 "postgres" "" "postgres"
 
 instance FromEnv Config
 
