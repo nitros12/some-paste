@@ -14,15 +14,13 @@ module Serve ( Config (..)
              , retrievePasteRaw
              , pageIndex
              , pageAbout
-             , getTheme
-             , getBaseStyle
              ) where
 
 import           BasicPrelude                  hiding (Text, encodeUtf8)
 import           Control.Monad.Reader          (MonadIO, MonadReader, ReaderT,
                                                 asks, lift, liftIO, void, when)
 import           Data.ByteString               (ByteString)
-import           Data.Digest.XXHash            (xxHash')
+import           Crypto.Hash
 import           Data.Int                      (Int32, Int64)
 import           Data.Maybe                    (fromMaybe)
 import           Data.Monoid                   ((<>))
@@ -78,8 +76,10 @@ tshow' = T.fromStrict . tshow
 rightToMaybe :: Either a b -> Maybe b
 rightToMaybe = either (const Nothing) Just
 
-hashPaste :: ST.Text -> Int32
-hashPaste = fromIntegral . xxHash' . encodeUtf8
+hashPaste :: ST.Text -> Text
+hashPaste paste = let hash' :: Digest Blake2b_160
+                      hash' = Crypto.Hash.hash . encodeUtf8 $ paste
+                  in T.fromStrict . tshow $ hash'
 
 errorWith :: Status -> Text -> ActionC ()
 errorWith code reason = status code >> text reason
@@ -101,7 +101,7 @@ retrievePaste = do
   paste <- liftIO $ withResource pool (`getPaste` key)
   case paste of
     Just p  -> html . renderHtml $ viewPaste p theme
-    Nothing -> errorWith status404 $ "Paste " <> tshow' key <> " not found"
+    Nothing -> errorWith status404 $ "Paste " <> key <> " not found"
 
 savePaste :: ActionC ()
 savePaste = do
@@ -113,7 +113,7 @@ savePaste = do
   let key = hashPaste $ T.toStrict (T.append paste lang)
   pool <- lift $ asks connPool
   void . liftIO $ withResource pool (\conn -> insertPaste conn paste key lang)
-  redirect $ "/paste/" <> tshow' key
+  redirect $ "/paste/" <> key
 
 retrievePasteRaw :: ActionC ()
 retrievePasteRaw = do
@@ -123,7 +123,7 @@ retrievePasteRaw = do
   paste <- liftIO $ withResource pool (`getPaste` key)
   case paste of
     Just p  -> text . plainPaste $ p
-    Nothing -> errorWith status404 $ "Paste " <> tshow' key <> " not found"
+    Nothing -> errorWith status404 $ "Paste " <> key <> " not found"
 
 pageIndex :: ActionC ()
 pageIndex = do
@@ -138,17 +138,3 @@ pageAbout = do
 css t = do
   setHeader "Content-Type" "text/css; charset=utf-8"
   raw $ DLT.encodeUtf8 t
-
-getTheme :: ActionC ()
-getTheme = do
-  canCache
-  name <- param "name"
-  css . renderHtml $ getStyleCss name
-
-getBaseStyle :: ActionC ()
-getBaseStyle = do
-  canCache
-  type' <- param "type"
-  when (type' `elem` ["front", "paste"]) $ do
-    css . renderHtml $ getPageCss type'
-

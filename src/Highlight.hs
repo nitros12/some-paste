@@ -14,6 +14,7 @@ import           NordSyntax                  (nord)
 import           Skylighting
 import           Text.Blaze.Html5            hiding (map)
 import           Text.Blaze.Html5.Attributes (href, rel, type_)
+-- import           Hasmin
 
 -- |Split text into a list of sourcelines
 buildLines :: Text -> [SourceLine]
@@ -38,8 +39,7 @@ tokenizePaste paste syntax = fromRight (buildLines paste) (tokenize config synta
                              }
 
 includeStyle :: Text -> Html
-includeStyle s = link ! href url ! rel "stylesheet"
-    where url = toValue $ "/theme/" <> s
+includeStyle s = style ! type_ "text/css" $ getStyleCss s
 
 -- |A helper function to highlight a paste
 highlightPaste :: Text -> Text -> Text -> Html
@@ -49,14 +49,15 @@ highlightPaste paste syntax theme = do
               (tokenizePaste paste <$> lookupSyntax syntax defaultSyntaxMap)
 
   formatHtmlBlock opts lines'
-  -- style ! type_ "text/css" $ toHtml $ styleToCss (getStyle theme)
 
   where
     opts = defaultFormatOpts { numberLines = True
                              , lineAnchors = True
                              }
 
+fromRight' :: Show a => Either a b -> b
+fromRight' (Left a) = error . show $ a
+fromRight' (Right b) = b
+
 getStyleCss :: Text -> Html
-getStyleCss s = do
-  let s' = getStyle s
-  toHtml $ styleToCss (s')
+getStyleCss = toHtml . styleToCss . getStyle

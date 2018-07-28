@@ -5,7 +5,6 @@ module Templates ( viewPaste
                  , frontPage
                  , plainPaste
                  , aboutPage
-                 , getPageCss
                  ) where
 
 import           BasicPrelude                hiding (Text)
@@ -17,7 +16,6 @@ import           Data.Map                    (keys)
 import           Data.Monoid                 ((<>))
 import           Data.String                 (fromString)
 import qualified Data.Text                   as ST
-import           Data.Text.Format
 import           Data.Text.Lazy              (Text, toStrict, unpack)
 import qualified Data.Text.Lazy              as T
 import           Db                          (Paste)
@@ -32,7 +30,7 @@ viewPaste :: Paste -> Text -> H.Html
 viewPaste (_, _, paste, key, lang) theme = H.html $ do
   H.head $ do
     H.title . H.lazyText $ "Paste: {}: " <> tshow' key
-    H.link H.! A.href "/style/paste" H.! A.rel "stylesheet"
+    H.style H.! A.type_ "text/css" $ pasteCss
     includeStyle $ toStrict theme
     openGraph "og:type" "website"
     openGraph "og:site_name" "somepaste"
@@ -51,7 +49,7 @@ frontPage :: H.Html
 frontPage = do
   H.head $ do
     H.title "SomePaste"
-    H.link H.! A.href "/style/front" H.! A.rel "stylesheet"
+    H.style H.! A.type_ "text/css" $ frontCss
     openGraph "og:type" "website"
     openGraph "og:title" "somepaste"
     openGraph "og:description" "A bad paste service, written in haskell."
@@ -75,10 +73,11 @@ frontPage = do
         H.! A.class_ "about-button" $
         "about"
 
+renderCssMin = C.renderWith C.compact []
 
-getPageCss :: ST.Text -> H.Html
-getPageCss "front" = do
-  H.toHtml . C.render $ do
+frontCss :: H.Html
+frontCss = do
+  H.toHtml . renderCssMin $ do
     C.body ? C.backgroundColor "#2E3440"
     C.a # ".about-button" ? do
       C.float C.floatRight
@@ -90,8 +89,11 @@ getPageCss "front" = do
       C.color "#ECEFF4"
       background transparent
       "resize" -: "none"
-getPageCss "paste" = do
-  H.toHtml . C.render $ do
+
+
+pasteCss :: H.Html
+pasteCss = do
+  H.toHtml . renderCssMin $ do
     C.body ? margin nil nil nil nil
     C.pre # ".sourceCode" ? -- do
       -- height (pct 100)
@@ -102,7 +104,7 @@ getPageCss "paste" = do
 
 
 aboutPage :: H.Html
-aboutPage = viewPaste (undefined, undefined, T.fromStrict aboutText, 0, "plain") "nord"
+aboutPage = viewPaste (undefined, undefined, T.fromStrict aboutText, "", "plain") "nord"
   where aboutText = unlines ["SomePaste is a paste service written by Nitros [https://github.com/nitros12]"
                             ,"The site is written entirely in Haskell, using Postgres as the data store."
                             ,"My main focus when building this was speed, since other paste services are very slow"

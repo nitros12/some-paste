@@ -1,5 +1,9 @@
 flags: {}
 packages:
 - .
-extra-deps: []
-resolver: lts-10.7
+extra-deps:
+- opaleye-0.6.7001.0
+- wai-middleware-throttle-0.2.2.1
+- token-bucket-0.1.0.1
+- hasmin-1.0.2
+resolver: lts-12.2

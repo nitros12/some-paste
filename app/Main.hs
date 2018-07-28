@@ -48,8 +48,6 @@ app throttler = do
   get "/about" pageAbout
   get "/paste/:key" retrievePaste
   get "/paste/raw/:key" retrievePasteRaw
-  get "/theme/:name" getTheme
-  get "/style/:type" getBaseStyle
   post "/paste" savePaste
 
 onThrottled' :: t -> Response
@@ -61,7 +59,7 @@ backgroundDeleter :: Pool Connection -> IO ()
 backgroundDeleter pool = forever $ do
   deleted <- withResource pool cleanMonthOld
   putStrLn $ "Deleted " <> tshow deleted <> " old pastes."
-  threadDelay $ 60*60*(10^5) -- 60 minutes
+  threadDelay $ 60 * 60 * (10 ^ 6) -- 60 minutes
 
 main :: IO ()
 main = do

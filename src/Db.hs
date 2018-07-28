@@ -13,7 +13,7 @@ module Db ( Paste
           ) where
 
 import           Control.Arrow
-import           Data.Int                         (Int32, Int64)
+import           Data.Int                         (Int64)
 import           Data.Maybe                       (listToMaybe)
 import           Data.Profunctor.Product          (p5)
 import           Data.Text.Lazy                   (Text)
@@ -23,11 +23,11 @@ import qualified Database.PostgreSQL.Simple       as PQ
 import           Database.PostgreSQL.Simple.SqlQQ (sql)
 import           Opaleye
 
-type PasteColumn = (Column PGInt8, Column PGTimestamptz, Column PGText, Column PGInt4, Column PGText)
-type Paste = (Int64, UTCTime, Text, Int32, Text)
+type PasteColumn = (Column PGInt8, Column PGTimestamptz, Column PGText, Column PGText, Column PGText)
+type Paste = (Int64, UTCTime, Text, Text, Text)
 
 pasteTable :: Table
-              (Maybe (Column PGInt8), Column PGTimestamptz, Column PGText, Column PGInt4, Column PGText)
+              (Maybe (Column PGInt8), Column PGTimestamptz, Column PGText, Column PGText, Column PGText)
               PasteColumn
 pasteTable = Table "pastes" (p5 ( optional "id"
                                 , required "last_visit"
@@ -38,13 +38,13 @@ pasteTable = Table "pastes" (p5 ( optional "id"
 stripCR :: Text -> Text
 stripCR = T.filter (/='\r')
 
-pasteKeyQuery :: Int32 -> Query PasteColumn
+pasteKeyQuery :: Text -> Query PasteColumn
 pasteKeyQuery key = proc () -> do
   row@(_, _, _, rkey, _) <- queryTable pasteTable -< ()
   restrict -< (rkey .== constant key)
   returnA -< row
 
-updateLastVisit :: PQ.Connection -> Int32 -> IO Int64
+updateLastVisit :: PQ.Connection -> Text -> IO Int64
 updateLastVisit c key = do
   time <- getCurrentTime
   runUpdate c pasteTable (update time) predicate
@@ -52,15 +52,9 @@ updateLastVisit c key = do
     update time (id_, _, paste, rkey, lang) = (Just id_, constant time, paste, rkey, lang)
     predicate (_, _, _, rkey, _) = rkey .== constant key
 
-getPaste :: PQ.Connection -> Int32 -> IO (Maybe Paste)
+getPaste :: PQ.Connection -> Text -> IO (Maybe Paste)
 getPaste c key = updateLastVisit c key >> listToMaybe <$> runQuery c (pasteKeyQuery key)
 
-
--- insertPaste :: PQ.Connection -> Text -> Int32 -> Text -> IO Int64
--- insertPaste c text key lang = do
---   let text' = stripCR text
---   time <- getCurrentTime
---   runInsertMany c pasteTable [(Nothing, constant time, constant text', constant key, constant lang)]
 
 cleanPastes :: PQ.Connection -> UTCTime -> IO Int64
 cleanPastes c before = runDelete c pasteTable predicate
@@ -74,7 +68,7 @@ cleanMonthOld c = do
   let diff  = addUTCTime delta time
   cleanPastes c diff
 
-insertPaste :: PQ.Connection -> Text -> Int32 -> Text -> IO Int64
+insertPaste :: PQ.Connection -> Text -> Text -> Text -> IO Int64
 insertPaste c paste key lang = do
   let paste' = stripCR paste
   time <- getCurrentTime
@@ -90,7 +84,7 @@ createTable c = PQ.execute_ c [sql|
         "id" BIGSERIAL PRIMARY KEY,
         "last_visit" TIMESTAMPTZ NOT NULL,
         "text" TEXT NOT NULL,
-        "key" INTEGER NOT NULL UNIQUE,
+        "key" TEXT NOT NULL UNIQUE,
         "lang" Text NOT NULL)
   |]
 
