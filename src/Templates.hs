@@ -1,5 +1,6 @@
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE NoMonomorphismRestriction #-}
 
 module Templates ( viewPaste
                  , frontPage
@@ -24,12 +25,13 @@ import           Skylighting.Syntax          (defaultSyntaxMap)
 import qualified Text.Blaze.Html5            as H
 import qualified Text.Blaze.Html5.Attributes as A
 
+tshow' :: Show a => a -> T.Text
 tshow' = T.fromStrict . tshow
 
 viewPaste :: Paste -> Text -> H.Html
 viewPaste (_, _, paste, key, lang) theme = H.html $ do
   H.head $ do
-    H.title . H.lazyText $ "Paste: {}: " <> tshow' key
+    H.title . H.lazyText $ "Paste: " <> key
     H.style H.! A.type_ "text/css" $ pasteCss
     includeStyle $ toStrict theme
     openGraph "og:type" "website"
