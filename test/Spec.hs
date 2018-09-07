@@ -50,26 +50,26 @@ app dbinfo = do
                                   }
 
 
-spec :: ConnectInfo -> Spec
-spec dbinfo = with (app dbinfo) $ do
+spec :: Serve.Config -> ConnectInfo -> Spec
+spec conf dbinfo = with (app dbinfo) $ do
   describe "POST /paste" $ do
     it "responds with 302" $
       postHtmlForm "/paste" [("text", "aaaaa")] `shouldRespondWith` 302
 
     it "responds with 500" $
-      postHtmlForm "/paste" [("text", replicate 20001 'a')] `shouldRespondWith` 500
+      postHtmlForm "/paste" [("text", replicate ((+ 1) . fromIntegral . Serve.maxLength $ conf) 'a')] `shouldRespondWith` 500
 
-    it "has 'Location: /paste/-138915964'" $
+    it "has 'Location: /paste/c278a519659dba4931fad428a04723682ba39908'" $
       postHtmlForm "/paste" [("text", "wew"), ("lang", "ABC")]
-        `shouldRespondWith` 302 { matchHeaders = ["Location" <:> "/paste/-138915964"]
+        `shouldRespondWith` 302 { matchHeaders = ["Location" <:> "/paste/9427d265f09c4182879d420cb667ed7448dd5715"]
                                 }
 
-  describe "GET /paste/raw/-138915964" $ do
+  describe "GET /paste/raw/9427d265f09c4182879d420cb667ed7448dd5715" $ do
     it "responds with 200" $
-      get "/paste/raw/-138915964" `shouldRespondWith` 200
+      get "/paste/raw/9427d265f09c4182879d420cb667ed7448dd5715" `shouldRespondWith` 200
 
     it "responds with 'wew'" $
-      get "/paste/raw/-138915964" `shouldRespondWith` "wew"
+      get "/paste/raw/9427d265f09c4182879d420cb667ed7448dd5715" `shouldRespondWith` "wew"
 
 main :: IO ()
 main = do
@@ -83,4 +83,4 @@ main = do
   conn <- connect dbinfo
   Db.dropTable conn -- cleanup
   Db.createTable conn
-  hspec $ spec dbinfo
+  hspec $ spec conf dbinfo
